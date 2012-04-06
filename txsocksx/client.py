@@ -100,6 +100,7 @@ class Socks5ClientFactory(protocol.ClientFactory):
     def proxyConnectionEstablished(self, proxyProtocol):
         proto = self.proxiedFactory.buildProtocol(
             proxyProtocol.transport.getPeer())
+        # XXX: handle the case of `proto is None`
         proxyProtocol.proxyEstablished(proto)
         self.deferred.callback(proto)
 
@@ -115,4 +116,6 @@ class Socks5ClientEndpoint(object):
     def connect(self, fac):
         proxyFac = Socks5ClientFactory(self.host, self.port, fac, self.authMethods)
         self.proxyEndpoint.connect(proxyFac)
+        # XXX: maybe use the deferred returned here? need to more different
+        # ways/times a connection can fail before connectionMade is called.
         return proxyFac.deferred
