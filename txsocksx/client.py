@@ -105,6 +105,8 @@ class SOCKS5ClientFactory(protocol.ClientFactory):
     protocol = SOCKS5Client
 
     def __init__(self, host, port, proxiedFactory, anonymousAuth, loginAuth):
+        if not (anonymousAuth or loginAuth):
+            raise ValueError('neither anonymous nor login auth was specified')
         self.host = host
         self.port = port
         self.proxiedFactory = proxiedFactory
