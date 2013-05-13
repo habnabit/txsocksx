@@ -6,7 +6,7 @@ from twisted.python import failure
 from zope.interface import implements
 
 import txsocksx.constants as c, txsocksx.errors as e
-from txsocksx import auth, grammar
+from txsocksx import grammar
 
 def socks_host(host):
     return chr(c.ATYP_DOMAINNAME) + chr(len(host)) + host
@@ -27,6 +27,12 @@ class SOCKS5Sender(object):
         self.transport.write(
             struct.pack('!BB', c.VER_SOCKS5, len(methods)) + ''.join(methods))
 
+    def sendLogin(self, username, password):
+        self.transport.write(
+            '\x01'
+            + chr(len(username)) + username
+            + chr(len(password)) + password)
+
     def sendRequest(self, command, host, port):
         data = struct.pack('!BBB', c.VER_SOCKS5, command, c.RSV)
         port = struct.pack('!H', port)
@@ -43,13 +49,30 @@ class SOCKS5State(object):
         parser.setNextRule('SOCKS5ClientState_initial')
 
     def connectionMade(self):
-        self.methodMap = dict((m.method, m) for m in self.factory.authMethods)
-        self.sender.sendAuthMethods(self.methodMap)
+        methods = self.methods = []
+        if self.factory.anonymousAuth:
+            methods.append(c.AUTH_ANONYMOUS)
+        if self.factory.loginAuth:
+            methods.append(c.AUTH_LOGIN)
+        self.sender.sendAuthMethods(methods)
 
     def authSelected(self, method):
-        if method not in self.methodMap:
+        if method not in self.methods:
             raise e.MethodsNotAcceptedError('no method proprosed was accepted',
-                                            self.methodMap.keys(), method)
+                                            self.methods, method)
+        if method == c.AUTH_ANONYMOUS:
+            return self._sendRequest()
+        elif method == c.AUTH_LOGIN:
+            self.sender.sendLogin(*self.factory.loginAuth)
+            return 'SOCKS5ClientState_readLoginResponse'
+
+    def loginResponse(self, success):
+        if not success:
+            raise e.LoginAuthenticationFailed(
+                'username/password combination was rejected')
+        return self._sendRequest()
+
+    def _sendRequest(self):
         self.sender.sendRequest(
             c.CMD_CONNECT, self.factory.host, self.factory.port)
         return 'SOCKS5ClientState_readResponse'
@@ -73,8 +96,7 @@ class SOCKS5State(object):
         if self.otherProtocol:
             self.otherProtocol.connectionLost(reason)
         else:
-            self.factory.proxyConnectionFailed(
-                failure.Failure(e.ConnectionLostEarly()))
+            self.factory.proxyConnectionFailed(reason)
 
 SOCKS5Client = makeProtocol(
     grammar.grammarSource, SOCKS5Sender, SOCKS5State, grammar.bindings)
@@ -82,11 +104,12 @@ SOCKS5Client = makeProtocol(
 class SOCKS5ClientFactory(protocol.ClientFactory):
     protocol = SOCKS5Client
 
-    def __init__(self, host, port, proxiedFactory, authMethods):
+    def __init__(self, host, port, proxiedFactory, anonymousAuth, loginAuth):
         self.host = host
         self.port = port
         self.proxiedFactory = proxiedFactory
-        self.authMethods = authMethods
+        self.anonymousAuth = anonymousAuth
+        self.loginAuth = loginAuth
         self.deferred = defer.Deferred()
 
     def proxyConnectionFailed(self, reason):
@@ -105,14 +128,17 @@ class SOCKS5ClientFactory(protocol.ClientFactory):
 class SOCKS5ClientEndpoint(object):
     implements(interfaces.IStreamClientEndpoint)
 
-    def __init__(self, host, port, proxyEndpoint, authMethods=(auth.Anonymous(),)):
+    def __init__(self, host, port, proxyEndpoint, anonymousAuth=True,
+                 loginAuth=None):
         self.host = host
         self.port = port
         self.proxyEndpoint = proxyEndpoint
-        self.authMethods = authMethods
+        self.anonymousAuth = anonymousAuth
+        self.loginAuth = loginAuth
 
     def connect(self, fac):
-        proxyFac = SOCKS5ClientFactory(self.host, self.port, fac, self.authMethods)
+        proxyFac = SOCKS5ClientFactory(
+            self.host, self.port, fac, self.anonymousAuth, self.loginAuth)
         self.proxyEndpoint.connect(proxyFac)
         # XXX: maybe use the deferred returned here? need to more different
         # ways/times a connection can fail before connectionMade is called.

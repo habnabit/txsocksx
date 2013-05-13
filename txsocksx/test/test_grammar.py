@@ -67,6 +67,13 @@ class TestGrammar(unittest.TestCase):
         self.assertEqual(parse('\x05\x01'), '\x01')
         self.assertEqual(parse('\x05\xff'), '\xff')
 
+    def test_SOCKS5ServerLoginResponse(self):
+        parse = stringParserFromRule('SOCKS5ServerLoginResponse')
+        self.assertEqual(parse('\x00\x00'), True)
+        self.assertEqual(parse('\x00\x01'), False)
+        self.assertEqual(parse('\x01\x00'), True)
+        self.assertEqual(parse('\x01\x01'), False)
+
     def test_SOCKS5ServerResponse(self):
         parse = stringParserFromRule('SOCKS5ServerResponse')
         self.assertEqual(parse('\x05\x00\x00\x03\x00\x00\x00'), (0, '', 0))

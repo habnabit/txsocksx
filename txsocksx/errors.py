@@ -1,4 +1,3 @@
-from twisted.internet import error
 import txsocksx.constants as c
 
 class SOCKSError(Exception):
@@ -10,7 +9,7 @@ class MethodsNotAcceptedError(SOCKSError):
 class ConnectionError(SOCKSError):
     pass
 
-class ConnectionLostEarly(SOCKSError, error.ConnectionLost):
+class LoginAuthenticationFailed(SOCKSError):
     pass
 
 socks5ErrorMap = {

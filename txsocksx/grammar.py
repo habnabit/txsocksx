@@ -33,6 +33,7 @@ SOCKS5Address = ( '\x01' ipv4Address:address -> address
                 )
 
 SOCKS5ServerAuthSelection = '\x05' anything
+SOCKS5ServerLoginResponse = anything anything:status -> status == '\x00'
 SOCKS5ServerResponse = '\x05' byte:status '\x00' SOCKS5Address:address short:port -> (status, address, port)
 
 SOCKS5ClientGreeting = '\x05' byte:authMethodCount byte{authMethodCount}:authMethods -> authMethods or []
@@ -43,6 +44,7 @@ SOCKS5ServerState_initial = SOCKS5ClientGreeting:authMethods -> state.authReques
 SOCKS5ServerState_readRequest = SOCKS5ClientRequest:request -> state.clientRequest(*request)
 
 SOCKS5ClientState_initial = SOCKS5ServerAuthSelection:selection -> state.authSelected(selection)
+SOCKS5ClientState_readLoginResponse = SOCKS5ServerLoginResponse:response -> state.loginResponse(response)
 SOCKS5ClientState_readResponse = SOCKS5ServerResponse:response -> state.serverResponse(*response)
 
 
