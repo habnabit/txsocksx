@@ -1,12 +1,12 @@
 import struct
 
-from qbuf.support.twisted import MultiBufferer, MODE_RAW
+from parsley import makeProtocol
 from twisted.internet import protocol, defer, interfaces
 from twisted.python import failure
 from zope.interface import implements
 
 import txsocksx.constants as c, txsocksx.errors as e
-from txsocksx import auth
+from txsocksx import auth, grammar
 
 def socks_host(host):
     return chr(c.ATYP_DOMAINNAME) + chr(len(host)) + host
@@ -19,59 +19,54 @@ class SOCKS5ClientTransport(object):
     def __getattr__(self, attr):
         return getattr(self.transport, attr)
 
-class SOCKS5Client(MultiBufferer):
+class SOCKS5Sender(object):
+    def __init__(self, transport):
+        self.transport = transport
+
+    def sendAuthMethods(self, methods):
+        self.transport.write(
+            struct.pack('!BB', c.VER_SOCKS5, len(methods)) + ''.join(methods))
+
+    def sendRequest(self, command, host, port):
+        data = struct.pack('!BBB', c.VER_SOCKS5, command, c.RSV)
+        port = struct.pack('!H', port)
+        self.transport.write(data + socks_host(host) + port)
+
+
+class SOCKS5State(object):
     implements(interfaces.ITransport)
     otherProtocol = None
 
-    def connectionMade(self):
-        d = self.readReply()
-        @d.addErrback
-        def _eb(reason):
-            self.factory.proxyConnectionFailed(reason)
-            self.close()
-        return d
+    def __init__(self, sender, parser):
+        self.sender = sender
+        self.factory = parser.factory
+        parser.setNextRule('SOCKS5ClientState_initial')
 
-    @defer.inlineCallbacks
-    def readReply(self):
-        methodMap = dict((m.method, m) for m in self.factory.authMethods)
-        self.transport.write(
-            struct.pack('!BB', c.VER_SOCKS5, len(methodMap))
-            + ''.join(methodMap))
-        method, = yield self.unpack('!xc')
-        if method not in methodMap:
+    def connectionMade(self):
+        self.methodMap = dict((m.method, m) for m in self.factory.authMethods)
+        self.sender.sendAuthMethods(self.methodMap)
+
+    def authSelected(self, method):
+        if method not in self.methodMap:
             raise e.MethodsNotAcceptedError('no method proprosed was accepted',
-                                            methodMap.keys(), method)
-        yield methodMap[method].negotiate(self)
-        data = struct.pack('!BBB', c.VER_SOCKS5, c.CMD_CONNECT, c.RSV)
-        port = struct.pack('!H', self.factory.port)
-        self.transport.write(data + socks_host(self.factory.host) + port)
-        status, address_type = yield self.unpack('!xBxB')
+                                            self.methodMap.keys(), method)
+        self.sender.sendRequest(
+            c.CMD_CONNECT, self.factory.host, self.factory.port)
+        return 'SOCKS5ClientState_readResponse'
+
+    def serverResponse(self, status, address, port):
         if status != c.SOCKS5_GRANTED:
             raise e.ConnectionError('connection rejected by SOCKS server',
                                     status,
                                     e.socks5ErrorMap.get(status, status))
-
-        # Discard the host and port data from the server.
-        if address_type == c.ATYP_IPV4:
-            yield self.read(4)
-        elif address_type == c.ATYP_DOMAINNAME:
-            host_length, = yield self.unpack('!B')
-            yield self.read(host_length)
-        elif address_type == c.ATYP_IPV6:
-            yield self.read(16)
-        yield self.read(2)
-
-        self.setMode(MODE_RAW)
         self.factory.proxyConnectionEstablished(self)
+        return 'SOCKSState_readData'
 
     def proxyEstablished(self, other):
         self.otherProtocol = other
-        other.makeConnection(SOCKS5ClientTransport(self))
+        other.makeConnection(SOCKS5ClientTransport(self.sender))
 
-    def rawDataReceived(self, data):
-        # There really is no reason for this to get called; we shouldn't be in
-        # raw mode until after SOCKS negotiation finishes.
-        assert self.otherProtocol is not None
+    def dataReceived(self, data):
         self.otherProtocol.dataReceived(data)
 
     def connectionLost(self, reason):
@@ -80,6 +75,9 @@ class SOCKS5Client(MultiBufferer):
         else:
             self.factory.proxyConnectionFailed(
                 failure.Failure(e.ConnectionLostEarly()))
+
+SOCKS5Client = makeProtocol(
+    grammar.grammarSource, SOCKS5Sender, SOCKS5State, grammar.bindings)
 
 class SOCKS5ClientFactory(protocol.ClientFactory):
     protocol = SOCKS5Client
@@ -99,7 +97,7 @@ class SOCKS5ClientFactory(protocol.ClientFactory):
 
     def proxyConnectionEstablished(self, proxyProtocol):
         proto = self.proxiedFactory.buildProtocol(
-            proxyProtocol.transport.getPeer())
+            proxyProtocol.sender.transport.getPeer())
         # XXX: handle the case of `proto is None`
         proxyProtocol.proxyEstablished(proto)
         self.deferred.callback(proto)
