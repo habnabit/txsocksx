@@ -32,8 +32,8 @@ methodD = FailingAuthMethod('D')
 
 connectionLostFailure = failure.Failure(ConnectionLost())
 
-class FakeSocks5ClientFactory(protocol.ClientFactory):
-    protocol = client.Socks5Client
+class FakeSOCKS5ClientFactory(protocol.ClientFactory):
+    protocol = client.SOCKS5Client
 
     def __init__(self, authMethods, host=None, port=None):
         self.host = host
@@ -48,9 +48,9 @@ class FakeSocks5ClientFactory(protocol.ClientFactory):
     def proxyConnectionEstablished(self, proxyProtocol):
         proxyProtocol.proxyEstablished(self.accum)
 
-class TestSocks5Client(unittest.TestCase):
+class TestSOCKS5Client(unittest.TestCase):
     def makeProto(self, *a, **kw):
-        fac = FakeSocks5ClientFactory(*a, **kw)
+        fac = FakeSOCKS5ClientFactory(*a, **kw)
         proto = fac.buildProtocol(None)
         proto.makeConnection(proto_helpers.StringTransport())
         return fac, proto

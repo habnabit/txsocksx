@@ -6,7 +6,7 @@ from txsocksx import auth, client
 
 class TestAuth(unittest.TestCase):
     def setUp(self):
-        self.proto = client.Socks5Client()
+        self.proto = client.SOCKS5Client()
         self.proto.transport = proto_helpers.StringTransport()
 
     def test_anonymous(self):

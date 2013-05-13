@@ -1,16 +1,16 @@
 from twisted.internet import error
 import txsocksx.constants as c
 
-class SocksError(Exception):
+class SOCKSError(Exception):
     pass
 
-class MethodsNotAcceptedError(SocksError):
+class MethodsNotAcceptedError(SOCKSError):
     pass
 
-class ConnectionError(SocksError):
+class ConnectionError(SOCKSError):
     pass
 
-class ConnectionLostEarly(SocksError, error.ConnectionLost):
+class ConnectionLostEarly(SOCKSError, error.ConnectionLost):
     pass
 
 socks5ErrorMap = {

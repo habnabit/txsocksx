@@ -11,7 +11,7 @@ from txsocksx import auth
 def socks_host(host):
     return chr(c.ATYP_DOMAINNAME) + chr(len(host)) + host
 
-class Socks5ClientTransport(object):
+class SOCKS5ClientTransport(object):
     def __init__(self, wrappedClient):
         self.wrappedClient = wrappedClient
         self.transport = self.wrappedClient.transport
@@ -19,7 +19,7 @@ class Socks5ClientTransport(object):
     def __getattr__(self, attr):
         return getattr(self.transport, attr)
 
-class Socks5Client(MultiBufferer):
+class SOCKS5Client(MultiBufferer):
     implements(interfaces.ITransport)
     otherProtocol = None
 
@@ -66,7 +66,7 @@ class Socks5Client(MultiBufferer):
 
     def proxyEstablished(self, other):
         self.otherProtocol = other
-        other.makeConnection(Socks5ClientTransport(self))
+        other.makeConnection(SOCKS5ClientTransport(self))
 
     def rawDataReceived(self, data):
         # There really is no reason for this to get called; we shouldn't be in
@@ -81,8 +81,8 @@ class Socks5Client(MultiBufferer):
             self.factory.proxyConnectionFailed(
                 failure.Failure(e.ConnectionLostEarly()))
 
-class Socks5ClientFactory(protocol.ClientFactory):
-    protocol = Socks5Client
+class SOCKS5ClientFactory(protocol.ClientFactory):
+    protocol = SOCKS5Client
 
     def __init__(self, host, port, proxiedFactory, authMethods):
         self.host = host
@@ -104,7 +104,7 @@ class Socks5ClientFactory(protocol.ClientFactory):
         proxyProtocol.proxyEstablished(proto)
         self.deferred.callback(proto)
 
-class Socks5ClientEndpoint(object):
+class SOCKS5ClientEndpoint(object):
     implements(interfaces.IStreamClientEndpoint)
 
     def __init__(self, host, port, proxyEndpoint, authMethods=(auth.Anonymous(),)):
@@ -114,7 +114,7 @@ class Socks5ClientEndpoint(object):
         self.authMethods = authMethods
 
     def connect(self, fac):
-        proxyFac = Socks5ClientFactory(self.host, self.port, fac, self.authMethods)
+        proxyFac = SOCKS5ClientFactory(self.host, self.port, fac, self.authMethods)
         self.proxyEndpoint.connect(proxyFac)
         # XXX: maybe use the deferred returned here? need to more different
         # ways/times a connection can fail before connectionMade is called.

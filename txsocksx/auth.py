@@ -1,5 +1,5 @@
 from twisted.internet import defer
-from txsocksx.errors import SocksError
+from txsocksx.errors import SOCKSError
 
 class Anonymous(object):
     method = '\x00'
@@ -7,7 +7,7 @@ class Anonymous(object):
     def negotiate(self, proto):
         return defer.succeed(None)
 
-class UsernamePasswordAuthFailed(SocksError):
+class UsernamePasswordAuthFailed(SOCKSError):
     pass
 
 class UsernamePassword(object):
