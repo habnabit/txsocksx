@@ -1,3 +1,6 @@
+# Copyright (c) Aaron Gallagher <_@habnab.it>
+# See COPYING for details.
+
 import txsocksx.constants as c
 
 class SOCKSError(Exception):

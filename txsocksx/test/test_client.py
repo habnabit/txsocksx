@@ -1,3 +1,6 @@
+# Copyright (c) Aaron Gallagher <_@habnab.it>
+# See COPYING for details.
+
 from twisted.internet.error import ConnectionLost
 from twisted.internet import protocol
 from twisted.python import failure
