@@ -24,8 +24,8 @@ SOCKS4Request = '\x04' SOCKS4Command:command short:port SOCKS4aHostUser:hostuser
 SOCKS4Response = '\x00' byte:status anything{6} -> status
 
 
-SOCKS4ServerState_initial = SOCKS4Request:request -> state.clientRequest(*request)
-SOCKS4ClientState_initial = SOCKS4Response:status -> state.serverResponse(status)
+SOCKS4ServerState_initial = SOCKS4Request:request -> receiver.clientRequest(*request)
+SOCKS4ClientState_initial = SOCKS4Response:status -> receiver.serverResponse(status)
 
 
 SOCKS5Command = (SOCKS4Command | '\x03' -> 'udp-associate')
@@ -43,15 +43,15 @@ SOCKS5ClientGreeting = '\x05' byte:authMethodCount byte{authMethodCount}:authMet
 SOCKS5ClientRequest = '\x05' SOCKS5Command:command '\x00' SOCKS5Address:address short:port -> (command, address, port)
 
 
-SOCKS5ServerState_initial = SOCKS5ClientGreeting:authMethods -> state.authRequested(authMethods)
-SOCKS5ServerState_readRequest = SOCKS5ClientRequest:request -> state.clientRequest(*request)
+SOCKS5ServerState_initial = SOCKS5ClientGreeting:authMethods -> receiver.authRequested(authMethods)
+SOCKS5ServerState_readRequest = SOCKS5ClientRequest:request -> receiver.clientRequest(*request)
 
-SOCKS5ClientState_initial = SOCKS5ServerAuthSelection:selection -> state.authSelected(selection)
-SOCKS5ClientState_readLoginResponse = SOCKS5ServerLoginResponse:response -> state.loginResponse(response)
-SOCKS5ClientState_readResponse = SOCKS5ServerResponse:response -> state.serverResponse(*response)
+SOCKS5ClientState_initial = SOCKS5ServerAuthSelection:selection -> receiver.authSelected(selection)
+SOCKS5ClientState_readLoginResponse = SOCKS5ServerLoginResponse:response -> receiver.loginResponse(response)
+SOCKS5ClientState_readResponse = SOCKS5ServerResponse:response -> receiver.serverResponse(*response)
 
 
-SOCKSState_readData = anything:data -> state.dataReceived(data)
+SOCKSState_readData = anything:data -> receiver.dataReceived(data)
 
 """
 

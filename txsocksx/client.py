@@ -42,7 +42,7 @@ class SOCKS5Sender(object):
         self.transport.write(data + socks_host(host) + port)
 
 
-class SOCKS5State(object):
+class SOCKS5Receiver(object):
     implements(interfaces.ITransport)
     otherProtocol = None
 
@@ -102,7 +102,7 @@ class SOCKS5State(object):
             self.factory.proxyConnectionFailed(reason)
 
 SOCKS5Client = makeProtocol(
-    grammar.grammarSource, SOCKS5Sender, SOCKS5State, grammar.bindings)
+    grammar.grammarSource, SOCKS5Sender, SOCKS5Receiver, grammar.bindings)
 
 class SOCKS5ClientFactory(protocol.ClientFactory):
     protocol = SOCKS5Client
