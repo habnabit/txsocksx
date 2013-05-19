@@ -12,10 +12,9 @@ env:
   - TWISTED=svn+svn://svn.twistedmatrix.com/svn/Twisted/trunk
 
 python:
-  - 2.5
   - 2.6
   - 2.7
-  - pypy
+  # no pypy; it segfaults on my tests right now :(
 
 install:
   - pip install $TWISTED pyOpenSSL --use-mirrors
