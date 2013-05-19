@@ -18,7 +18,7 @@ python:
   - pypy
 
 install:
-  - pip install -q $TWISTED pyOpenSSL pytest --use-mirrors
-  - pip install -q -r requirements.txt --use-mirrors
+  - pip install $TWISTED pyOpenSSL --use-mirrors
+  - pip install -r requirements.txt --use-mirrors
 
-script: py.test txsocksx
+script: trial txsocksx
