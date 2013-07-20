@@ -36,7 +36,7 @@ class FakeSOCKS5ClientFactory(protocol.ClientFactory):
 
 authAdditionGrammar = """
 
-authAdditional = 'additional' anything:x -> receiver.authedAdditional(x)
+authAddition = 'addition' anything:x -> receiver.authedAddition(x)
 
 """
 
@@ -51,24 +51,24 @@ class AuthAdditionWrapper(object):
     authMethodMap = {
         c.AUTH_ANONYMOUS: 'anonymous',
         c.AUTH_LOGIN: 'login',
-        'A': 'additional',
+        'A': 'addition',
     }
 
-    additionalArgs = additionalParsed = None
+    additionArgs = additionParsed = None
 
-    def auth_additional(self, *a):
-        self.additionalArgs = a
-        self.sender.transport.write('additional!')
-        self.currentRule = 'authAdditional'
+    def auth_addition(self, *a):
+        self.additionArgs = a
+        self.sender.transport.write('addition!')
+        self.currentRule = 'authAddition'
 
-    def authedAdditional(self, x):
-        self.additionalParsed = x
+    def authedAddition(self, x):
+        self.additionParsed = x
         del self.currentRule
         self.w._sendRequest()
 
 
 
-AdditionalAuthSOCKS5Client = makeProtocol(
+AdditionAuthSOCKS5Client = makeProtocol(
     grammar.grammarSource + authAdditionGrammar,
     client.SOCKS5Sender,
     stack(client.SOCKS5AuthDispatcher, AuthAdditionWrapper, client.SOCKS5Receiver),
@@ -195,12 +195,12 @@ class TestSOCKS5Client(unittest.TestCase):
 
     def test_authAddition(self):
         fac, proto = self.makeProto(
-            _protoClass=AdditionalAuthSOCKS5Client, methods={'A': ('x', 'y')})
+            _protoClass=AdditionAuthSOCKS5Client, methods={'A': ('x', 'y')})
         proto.transport.clear()
         proto.dataReceived('\x05A')
-        self.assertEqual(proto.transport.value(), 'additional!')
-        self.assertEqual(proto.receiver.additionalArgs, ('x', 'y'))
-        proto.dataReceived('additionalz')
-        self.assertEqual(proto.receiver.additionalParsed, 'z')
+        self.assertEqual(proto.transport.value(), 'addition!')
+        self.assertEqual(proto.receiver.additionArgs, ('x', 'y'))
+        proto.dataReceived('additionz')
+        self.assertEqual(proto.receiver.additionParsed, 'z')
         proto.dataReceived('\x05\x00\x00\x01444422xxxxx')
         self.assertEqual(fac.accum.data, 'xxxxx')
