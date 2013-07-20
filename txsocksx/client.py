@@ -45,13 +45,13 @@ class SOCKS5Sender(object):
 class SOCKS5Receiver(object):
     implements(interfaces.ITransport)
     otherProtocol = None
+    currentRule = 'SOCKS5ClientState_initial'
 
-    def __init__(self, sender, parser):
+    def __init__(self, sender):
         self.sender = sender
-        self.factory = parser.factory
-        parser.setNextRule('SOCKS5ClientState_initial')
 
-    def connectionMade(self):
+    def prepareParsing(self, parser):
+        self.factory = parser.factory
         methods = self.methods = []
         if self.factory.anonymousAuth:
             methods.append(c.AUTH_ANONYMOUS)
@@ -67,7 +67,7 @@ class SOCKS5Receiver(object):
             return self._sendRequest()
         elif method == c.AUTH_LOGIN:
             self.sender.sendLogin(*self.factory.loginAuth)
-            return 'SOCKS5ClientState_readLoginResponse'
+            self.currentRule = 'SOCKS5ClientState_readLoginResponse'
 
     def loginResponse(self, success):
         if not success:
@@ -78,7 +78,7 @@ class SOCKS5Receiver(object):
     def _sendRequest(self):
         self.sender.sendRequest(
             c.CMD_CONNECT, self.factory.host, self.factory.port)
-        return 'SOCKS5ClientState_readResponse'
+        self.currentRule = 'SOCKS5ClientState_readResponse'
 
     def serverResponse(self, status, address, port):
         if status != c.SOCKS5_GRANTED:
@@ -86,7 +86,7 @@ class SOCKS5Receiver(object):
                                     status,
                                     e.socks5ErrorMap.get(status, status))
         self.factory.proxyConnectionEstablished(self)
-        return 'SOCKSState_readData'
+        self.currentRule = 'SOCKSState_readData'
 
     def proxyEstablished(self, other):
         self.otherProtocol = other
@@ -95,7 +95,7 @@ class SOCKS5Receiver(object):
     def dataReceived(self, data):
         self.otherProtocol.dataReceived(data)
 
-    def connectionLost(self, reason):
+    def finishParsing(self, reason):
         if self.otherProtocol:
             self.otherProtocol.connectionLost(reason)
         else:
