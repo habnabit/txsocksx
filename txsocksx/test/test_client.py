@@ -63,6 +63,8 @@ class AuthAdditionWrapper(object):
 
     def authedAdditional(self, x):
         self.additionalParsed = x
+        del self.currentRule
+        self.w._sendRequest()
 
 
 
@@ -195,7 +197,10 @@ class TestSOCKS5Client(unittest.TestCase):
         fac, proto = self.makeProto(
             _protoClass=AdditionalAuthSOCKS5Client, methods={'A': ('x', 'y')})
         proto.transport.clear()
-        proto.dataReceived('\x05Aadditionalz')
+        proto.dataReceived('\x05A')
         self.assertEqual(proto.transport.value(), 'additional!')
         self.assertEqual(proto.receiver.additionalArgs, ('x', 'y'))
+        proto.dataReceived('additionalz')
         self.assertEqual(proto.receiver.additionalParsed, 'z')
+        proto.dataReceived('\x05\x00\x00\x01444422xxxxx')
+        self.assertEqual(fac.accum.data, 'xxxxx')
