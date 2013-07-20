@@ -8,17 +8,17 @@ from twisted.trial import unittest
 from twisted.test import proto_helpers
 
 from txsocksx import client, errors
+import txsocksx.constants as c
 
 connectionLostFailure = failure.Failure(ConnectionLost())
 
 class FakeSOCKS5ClientFactory(protocol.ClientFactory):
     protocol = client.SOCKS5Client
 
-    def __init__(self, host='', port=0, anonymousAuth=True, loginAuth=None):
+    def __init__(self, host='', port=0, methods={c.AUTH_ANONYMOUS: ()}):
         self.host = host
         self.port = port
-        self.anonymousAuth = anonymousAuth
-        self.loginAuth = loginAuth
+        self.methods = methods
         self.reason = None
         self.accum = proto_helpers.AccumulatingProtocol()
 
@@ -41,10 +41,10 @@ class TestSOCKS5Client(unittest.TestCase):
         fac, proto = self.makeProto()
         self.assertEqual(proto.transport.value(), '\x05\x01\x00')
 
-        fac, proto = self.makeProto(loginAuth=True)
+        fac, proto = self.makeProto(methods={c.AUTH_ANONYMOUS: (), c.AUTH_LOGIN: ()})
         self.assertEqual(proto.transport.value(), '\x05\x02\x00\x02')
 
-        fac, proto = self.makeProto(anonymousAuth=False, loginAuth=True)
+        fac, proto = self.makeProto(methods={c.AUTH_LOGIN: ()})
         self.assertEqual(proto.transport.value(), '\x05\x01\x02')
 
     def test_failedMethodSelection(self):
@@ -56,20 +56,20 @@ class TestSOCKS5Client(unittest.TestCase):
         self.assertEqual(fac.reason.value.args[2], '\xff')
 
     def test_loginAuth(self):
-        fac, proto = self.makeProto(loginAuth=('spam', 'eggs'))
+        fac, proto = self.makeProto(methods={c.AUTH_LOGIN: ('spam', 'eggs')})
         proto.transport.clear()
         proto.dataReceived('\x05\x02')
         self.assertEqual(proto.transport.value(), '\x01\x04spam\x04eggs')
 
     def test_loginAuthAccepted(self):
-        fac, proto = self.makeProto(loginAuth=('spam', 'eggs'))
+        fac, proto = self.makeProto(methods={c.AUTH_LOGIN: ('spam', 'eggs')})
         proto.dataReceived('\x05\x02')
         proto.transport.clear()
         proto.dataReceived('\x01\x00')
         self.assert_(proto.transport.value())
 
     def test_loginAuthFailed(self):
-        fac, proto = self.makeProto(loginAuth=('spam', 'eggs'))
+        fac, proto = self.makeProto(methods={c.AUTH_LOGIN: ('spam', 'eggs')})
         proto.dataReceived('\x05\x02\x01\x01')
         self.failIfEqual(fac.reason, None)
         self.failUnlessIsInstance(

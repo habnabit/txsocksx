@@ -3,7 +3,7 @@
 
 import struct
 
-from parsley import makeProtocol
+from parsley import makeProtocol, stack
 from twisted.internet import protocol, defer, interfaces
 from twisted.python import failure
 from zope.interface import implements
@@ -42,6 +42,21 @@ class SOCKS5Sender(object):
         self.transport.write(data + socks_host(host) + port)
 
 
+class SOCKS5AuthDispatcher(object):
+    def __init__(self, wrapped):
+        self.w = wrapped
+
+    def __getattr__(self, attr):
+        return getattr(self.w, attr)
+
+    def authSelected(self, method):
+        if method not in self.w.factory.methods:
+            raise e.MethodsNotAcceptedError('no method proprosed was accepted',
+                                            self.w.factory.methods, method)
+        authMethod = getattr(self.w, 'auth_' + self.w.authMethodMap[method])
+        authMethod(*self.w.factory.methods[method])
+
+
 class SOCKS5Receiver(object):
     implements(interfaces.ITransport)
     otherProtocol = None
@@ -52,28 +67,25 @@ class SOCKS5Receiver(object):
 
     def prepareParsing(self, parser):
         self.factory = parser.factory
-        methods = self.methods = []
-        if self.factory.anonymousAuth:
-            methods.append(c.AUTH_ANONYMOUS)
-        if self.factory.loginAuth:
-            methods.append(c.AUTH_LOGIN)
-        self.sender.sendAuthMethods(methods)
+        self.sender.sendAuthMethods(self.factory.methods)
 
-    def authSelected(self, method):
-        if method not in self.methods:
-            raise e.MethodsNotAcceptedError('no method proprosed was accepted',
-                                            self.methods, method)
-        if method == c.AUTH_ANONYMOUS:
-            return self._sendRequest()
-        elif method == c.AUTH_LOGIN:
-            self.sender.sendLogin(*self.factory.loginAuth)
-            self.currentRule = 'SOCKS5ClientState_readLoginResponse'
+    authMethodMap = {
+        c.AUTH_ANONYMOUS: 'anonymous',
+        c.AUTH_LOGIN: 'login',
+    }
+
+    def auth_anonymous(self):
+        self._sendRequest()
+
+    def auth_login(self, username, password):
+        self.sender.sendLogin(username, password)
+        self.currentRule = 'SOCKS5ClientState_readLoginResponse'
 
     def loginResponse(self, success):
         if not success:
             raise e.LoginAuthenticationFailed(
                 'username/password combination was rejected')
-        return self._sendRequest()
+        self._sendRequest()
 
     def _sendRequest(self):
         self.sender.sendRequest(
@@ -102,19 +114,28 @@ class SOCKS5Receiver(object):
             self.factory.proxyConnectionFailed(reason)
 
 SOCKS5Client = makeProtocol(
-    grammar.grammarSource, SOCKS5Sender, SOCKS5Receiver, grammar.bindings)
+    grammar.grammarSource,
+    SOCKS5Sender,
+    stack(SOCKS5AuthDispatcher, SOCKS5Receiver),
+    grammar.bindings)
 
 class SOCKS5ClientFactory(protocol.ClientFactory):
     protocol = SOCKS5Client
 
-    def __init__(self, host, port, proxiedFactory, anonymousAuth, loginAuth):
-        if not (anonymousAuth or loginAuth):
-            raise ValueError('neither anonymous nor login auth was specified')
+    authMethodMap = {
+        'anonymous': c.AUTH_ANONYMOUS,
+        'login': c.AUTH_LOGIN,
+    }
+
+    def __init__(self, host, port, proxiedFactory, methods={'anonymous': ()}):
+        if not methods:
+            raise ValueError('no auth methods were specified')
         self.host = host
         self.port = port
         self.proxiedFactory = proxiedFactory
-        self.anonymousAuth = anonymousAuth
-        self.loginAuth = loginAuth
+        self.methods = dict(
+            (self.authMethodMap[method], value)
+            for method, value in methods.iteritems())
         self.deferred = defer.Deferred()
 
     def proxyConnectionFailed(self, reason):
@@ -129,6 +150,7 @@ class SOCKS5ClientFactory(protocol.ClientFactory):
         # XXX: handle the case of `proto is None`
         proxyProtocol.proxyEstablished(proto)
         self.deferred.callback(proto)
+
 
 class SOCKS5ClientEndpoint(object):
     implements(interfaces.IStreamClientEndpoint)
