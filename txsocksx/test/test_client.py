@@ -1,13 +1,14 @@
 # Copyright (c) Aaron Gallagher <_@habnab.it>
 # See COPYING for details.
 
+from parsley import makeProtocol, stack
 from twisted.internet.error import ConnectionLost
 from twisted.internet import protocol
 from twisted.python import failure, log
 from twisted.trial import unittest
 from twisted.test import proto_helpers
 
-from txsocksx import client, errors
+from txsocksx import client, errors, grammar
 import txsocksx.constants as c
 
 connectionLostFailure = failure.Failure(ConnectionLost())
@@ -32,9 +33,51 @@ class FakeSOCKS5ClientFactory(protocol.ClientFactory):
     def proxyConnectionEstablished(self, proxyProtocol):
         proxyProtocol.proxyEstablished(self.accum)
 
+
+authAdditionGrammar = """
+
+authAdditional = 'additional' anything:x -> receiver.authedAdditional(x)
+
+"""
+
+
+class AuthAdditionWrapper(object):
+    def __init__(self, wrapped):
+        self.w = wrapped
+
+    def __getattr__(self, attr):
+        return getattr(self.w, attr)
+
+    authMethodMap = {
+        c.AUTH_ANONYMOUS: 'anonymous',
+        c.AUTH_LOGIN: 'login',
+        'A': 'additional',
+    }
+
+    additionalArgs = additionalParsed = None
+
+    def auth_additional(self, *a):
+        self.additionalArgs = a
+        self.sender.transport.write('additional!')
+        self.currentRule = 'authAdditional'
+
+    def authedAdditional(self, x):
+        self.additionalParsed = x
+
+
+
+AdditionalAuthSOCKS5Client = makeProtocol(
+    grammar.grammarSource + authAdditionGrammar,
+    client.SOCKS5Sender,
+    stack(client.SOCKS5AuthDispatcher, AuthAdditionWrapper, client.SOCKS5Receiver),
+    grammar.bindings)
+
+
 class TestSOCKS5Client(unittest.TestCase):
     def makeProto(self, *a, **kw):
+        protoClass = kw.pop('_protoClass', client.SOCKS5Client)
         fac = FakeSOCKS5ClientFactory(*a, **kw)
+        fac.protocol = protoClass
         proto = fac.buildProtocol(None)
         transport = proto_helpers.StringTransport()
         transport.abortConnection = lambda: None
@@ -147,3 +190,12 @@ class TestSOCKS5Client(unittest.TestCase):
         proto.connectionLost(connectionLostFailure)
         self.assertEqual(fac.accum.closedReason, connectionLostFailure)
         self.assertEqual(fac.accum.data, 'xxxxx')
+
+    def test_authAddition(self):
+        fac, proto = self.makeProto(
+            _protoClass=AdditionalAuthSOCKS5Client, methods={'A': ('x', 'y')})
+        proto.transport.clear()
+        proto.dataReceived('\x05Aadditionalz')
+        self.assertEqual(proto.transport.value(), 'additional!')
+        self.assertEqual(proto.receiver.additionalArgs, ('x', 'y'))
+        self.assertEqual(proto.receiver.additionalParsed, 'z')
