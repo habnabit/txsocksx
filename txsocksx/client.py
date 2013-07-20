@@ -155,17 +155,14 @@ class SOCKS5ClientFactory(protocol.ClientFactory):
 class SOCKS5ClientEndpoint(object):
     implements(interfaces.IStreamClientEndpoint)
 
-    def __init__(self, host, port, proxyEndpoint, anonymousAuth=True,
-                 loginAuth=None):
+    def __init__(self, host, port, proxyEndpoint, methods={'anonymous': ()}):
         self.host = host
         self.port = port
         self.proxyEndpoint = proxyEndpoint
-        self.anonymousAuth = anonymousAuth
-        self.loginAuth = loginAuth
+        self.methods = methods
 
     def connect(self, fac):
-        proxyFac = SOCKS5ClientFactory(
-            self.host, self.port, fac, self.anonymousAuth, self.loginAuth)
+        proxyFac = SOCKS5ClientFactory(self.host, self.port, fac, self.methods)
         self.proxyEndpoint.connect(proxyFac)
         # XXX: maybe use the deferred returned here? need to more different
         # ways/times a connection can fail before connectionMade is called.
