@@ -3,7 +3,7 @@
 
 from twisted.internet.error import ConnectionLost
 from twisted.internet import protocol
-from twisted.python import failure
+from twisted.python import failure, log
 from twisted.trial import unittest
 from twisted.test import proto_helpers
 
@@ -21,9 +21,13 @@ class FakeSOCKS5ClientFactory(protocol.ClientFactory):
         self.methods = methods
         self.reason = None
         self.accum = proto_helpers.AccumulatingProtocol()
+        self.expectingReason = False
 
     def proxyConnectionFailed(self, reason):
-        self.reason = reason
+        if self.expectingReason:
+            self.reason = reason
+        else:
+            log.err(reason)
 
     def proxyConnectionEstablished(self, proxyProtocol):
         proxyProtocol.proxyEstablished(self.accum)
@@ -49,6 +53,7 @@ class TestSOCKS5Client(unittest.TestCase):
 
     def test_failedMethodSelection(self):
         fac, proto = self.makeProto()
+        fac.expectingReason = True
         proto.dataReceived('\x05\xff')
         self.failIfEqual(fac.reason, None)
         self.failUnlessIsInstance(
@@ -70,6 +75,7 @@ class TestSOCKS5Client(unittest.TestCase):
 
     def test_loginAuthFailed(self):
         fac, proto = self.makeProto(methods={c.AUTH_LOGIN: ('spam', 'eggs')})
+        fac.expectingReason = True
         proto.dataReceived('\x05\x02\x01\x01')
         self.failIfEqual(fac.reason, None)
         self.failUnlessIsInstance(
@@ -107,6 +113,7 @@ class TestSOCKS5Client(unittest.TestCase):
 
     def test_connectionRequestError(self):
         fac, proto = self.makeProto()
+        fac.expectingReason = True
         proto.dataReceived('\x05\x00\x05\x01\x00\x03\x0022')
         self.failIfEqual(fac.reason, None)
         self.failUnlessIsInstance(fac.reason.value, errors.ConnectionError)
@@ -123,6 +130,7 @@ class TestSOCKS5Client(unittest.TestCase):
         for e in xrange(len(wholeRequest)):
             partialRequest = wholeRequest[:e]
             fac, proto = self.makeProto()
+            fac.expectingReason = True
             if partialRequest:
                 proto.dataReceived(partialRequest)
             proto.connectionLost(connectionLostFailure)
