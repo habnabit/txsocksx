@@ -136,18 +136,34 @@ class SOCKS5ClientFactory(protocol.ClientFactory):
         self.methods = dict(
             (self.authMethodMap[method], value)
             for method, value in methods.iteritems())
-        self.deferred = defer.Deferred()
+        self.deferred = defer.Deferred(self._cancel)
+        self.currentCandidate = None
+        self.canceled = False
+
+    def _cancel(self, d):
+        self.currentCandidate.sender.transport.abortConnection()
+        self.canceled = True
+
+    def buildProtocol(self, addr):
+        proto = self.protocol()
+        proto.factory = self
+        self.currentCandidate = proto
+        return proto
 
     def proxyConnectionFailed(self, reason):
-        self.deferred.errback(reason)
+        if not self.canceled:
+            self.deferred.errback(reason)
 
+    # this method is not called if an endpoint deferred errbacks
     def clientConnectionFailed(self, connector, reason):
         self.proxyConnectionFailed(reason)
 
     def proxyConnectionEstablished(self, proxyProtocol):
         proto = self.proxiedFactory.buildProtocol(
             proxyProtocol.sender.transport.getPeer())
-        # XXX: handle the case of `proto is None`
+        if proto is None:
+            self.deferred.cancel()
+            return
         proxyProtocol.proxyEstablished(proto)
         self.deferred.callback(proto)
 
@@ -163,7 +179,6 @@ class SOCKS5ClientEndpoint(object):
 
     def connect(self, fac):
         proxyFac = SOCKS5ClientFactory(self.host, self.port, fac, self.methods)
-        self.proxyEndpoint.connect(proxyFac)
-        # XXX: maybe use the deferred returned here? need to more different
-        # ways/times a connection can fail before connectionMade is called.
-        return proxyFac.deferred
+        d = self.proxyEndpoint.connect(proxyFac)
+        d.addCallback(lambda proto: [proxyFac.deferred.cancel()] and proxyFac.deferred)
+        return d
