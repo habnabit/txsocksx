@@ -180,5 +180,5 @@ class SOCKS5ClientEndpoint(object):
     def connect(self, fac):
         proxyFac = SOCKS5ClientFactory(self.host, self.port, fac, self.methods)
         d = self.proxyEndpoint.connect(proxyFac)
-        d.addCallback(lambda proto: [proxyFac.deferred.cancel()] and proxyFac.deferred)
+        d.addCallback(lambda proto: proxyFac.deferred)
         return d
