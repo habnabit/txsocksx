@@ -22,7 +22,7 @@ matrix:
     - python: pypy
 
 install:
-  - pip install $TWISTED pyOpenSSL python-coveralls --use-mirrors
+  - pip install $TWISTED pyOpenSSL coveralls --use-mirrors
   - pip install -r requirements.txt --use-mirrors
 
 script: coverage run $(which trial) txsocksx
