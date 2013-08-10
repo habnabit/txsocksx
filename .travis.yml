@@ -14,10 +14,16 @@ env:
 python:
   - 2.6
   - 2.7
-  # no pypy; it segfaults on my tests right now :(
+  - pypy
+
+matrix:
+  allow_failures:
+    # pypy is a bit sporadic
+    - python: pypy
 
 install:
-  - pip install $TWISTED pyOpenSSL --use-mirrors
+  - pip install $TWISTED pyOpenSSL python-coveralls --use-mirrors
   - pip install -r requirements.txt --use-mirrors
 
-script: trial txsocksx
+script: coverage run $(which trial) txsocksx
+after_success: "coveralls"
