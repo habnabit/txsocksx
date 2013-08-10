@@ -7,6 +7,9 @@ from setuptools import setup
 with open('README.rst', 'rb') as infile:
     long_description = infile.read()
 
+with open('requirements.txt', 'rb') as infile:
+    install_requires = infile.read().split()
+
 setup(
     name='txsocksx',
     description='Twisted client endpoints for SOCKS{4,4a,5}',
@@ -31,5 +34,6 @@ setup(
     vcversioner={
         'version_module_paths': ['txsocksx/_version.py'],
     },
+    install_requires=install_requires,
     packages=['txsocksx', 'txsocksx.test'],
 )

@@ -1,2 +1,2 @@
 Twisted>=10.1
-git+git://github.com/washort/parsley.git@document-protocol-parsing
+Parsley>=1.2
