@@ -94,9 +94,8 @@ class SOCKS5Receiver(object):
 
     def serverResponse(self, status, address, port):
         if status != c.SOCKS5_GRANTED:
-            raise e.ConnectionError('connection rejected by SOCKS server',
-                                    status,
-                                    e.socks5ErrorMap.get(status, status))
+            raise e.socks5ErrorMap.get(status)()
+
         self.factory.proxyConnectionEstablished(self)
         self.currentRule = 'SOCKSState_readData'
 

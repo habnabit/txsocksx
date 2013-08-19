@@ -161,8 +161,7 @@ class TestSOCKS5Client(unittest.TestCase):
         fac.expectingReason = True
         proto.dataReceived('\x05\x00\x05\x01\x00\x03\x0022')
         self.failIfEqual(fac.reason, None)
-        self.failUnlessIsInstance(fac.reason.value, errors.ConnectionError)
-        self.assertEqual(fac.reason.value.args[1], 0x01)
+        self.failUnlessIsInstance(fac.reason.value, errors.ServerFailure)
 
     def test_buffering(self):
         fac, proto = self.makeProto()
