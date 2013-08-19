@@ -1,0 +1,2 @@
+graft examples
+include version.txt COPYING README.rst

@@ -1,3 +1,6 @@
+# Copyright (c) Aaron Gallagher <_@habnab.it>
+# See COPYING for details.
+
 from twisted.protocols import tls
 from twisted.internet import interfaces
 from zope.interface import implements

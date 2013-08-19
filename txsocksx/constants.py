@@ -1,4 +1,8 @@
+# Copyright (c) Aaron Gallagher <_@habnab.it>
+# See COPYING for details.
+
 VER_SOCKS5 = 5
+AUTH_ANONYMOUS, AUTH_LOGIN = '\x00', '\x02'
 ATYP_IPV4, ATYP_DOMAINNAME, ATYP_IPV6 = 1, 3, 4
 CMD_CONNECT, CMD_BIND, CMD_UDP_ASSOCIATE = 1, 2, 3
 NO_ACCEPTABLE_METHODS = 255
