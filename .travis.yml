@@ -1,14 +1,12 @@
 language: python
 
 env:
+  # earliest, latest, and the last release of every year
   - TWISTED=Twisted==10.1
   - TWISTED=Twisted==10.2
-  - TWISTED=Twisted==11.0
   - TWISTED=Twisted==11.1
-  - TWISTED=Twisted==12.0
-  - TWISTED=Twisted==12.1
-  - TWISTED=Twisted==12.2
   - TWISTED=Twisted==12.3
+  - TWISTED=Twisted==13.1
   - TWISTED=svn+svn://svn.twistedmatrix.com/svn/Twisted/trunk
 
 python:
