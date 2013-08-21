@@ -228,6 +228,18 @@ class TestSOCKS5Client(unittest.TestCase):
         proto.dataReceived('\x05\x00\x00\x01444422xxxxx')
         self.assertEqual(fac.accum.data, 'xxxxx')
 
+    def test_dataSentByPeer(self):
+        fac, proto = self.makeProto()
+        proto.dataReceived('\x05\x00\x05\x00\x00\x01444422')
+        proto.transport.clear()
+        fac.accum.transport.write('xxxxx')
+        self.assertEqual(proto.transport.value(), 'xxxxx')
+
+    def test_protocolSwitching(self):
+        fac, proto = self.makeProto()
+        proto.dataReceived('\x05\x00\x05\x00\x00\x01444422')
+        self.assertEqual(proto.transport.protocol, fac.accum)
+
 
 class TestSOCKS4Client(unittest.TestCase):
     def makeProto(self, *a, **kw):
@@ -297,6 +309,18 @@ class TestSOCKS4Client(unittest.TestCase):
         proto.connectionLost(connectionLostFailure)
         self.assertEqual(fac.accum.closedReason, connectionLostFailure)
         self.assertEqual(fac.accum.data, 'xxxxx')
+
+    def test_dataSentByPeer(self):
+        fac, proto = self.makeProto()
+        proto.dataReceived('\x00\x5a\x00\x00\x00\x00\x00\x00')
+        proto.transport.clear()
+        fac.accum.transport.write('xxxxx')
+        self.assertEqual(proto.transport.value(), 'xxxxx')
+
+    def test_protocolSwitching(self):
+        fac, proto = self.makeProto()
+        proto.dataReceived('\x00\x5a\x00\x00\x00\x00\x00\x00')
+        self.assertEqual(proto.transport.protocol, fac.accum)
 
 
 class FakeFactory(protocol.ClientFactory):
@@ -396,6 +420,14 @@ class TestSOCKS5ClientFactory(_TestSOCKSClientFactoryCommon, unittest.TestCase):
         self.assert_(self.aborted)
         return self.assertFailure(fac.deferred, defer.CancelledError)
 
+    def test_dataSentByPeer(self):
+        wrappedFac = FakeFactory()
+        fac, proto = self.makeProto('', 0, wrappedFac)
+        proto.dataReceived('\x05\x00\x05\x00\x00\x01444422')
+        proto.transport.clear()
+        wrappedFac.proto.transport.write('xxxxx')
+        self.assertEqual(proto.transport.value(), 'xxxxx')
+
 
 class TestSOCKS4ClientFactory(_TestSOCKSClientFactoryCommon, unittest.TestCase):
     factory = client.SOCKS4ClientFactory
@@ -424,6 +456,14 @@ class TestSOCKS4ClientFactory(_TestSOCKSClientFactoryCommon, unittest.TestCase):
         proto.dataReceived('\x00\x5a\x00\x00\x00\x00\x00\x00xxxxx')
         self.assert_(self.aborted)
         return self.assertFailure(fac.deferred, defer.CancelledError)
+
+    def test_dataSentByPeer(self):
+        wrappedFac = FakeFactory()
+        fac, proto = self.makeProto('', 0, wrappedFac)
+        proto.dataReceived('\x00\x5a\x00\x00\x00\x00\x00\x00')
+        proto.transport.clear()
+        wrappedFac.proto.transport.write('xxxxx')
+        self.assertEqual(proto.transport.value(), 'xxxxx')
 
 
 class FakeEndpoint(object):
@@ -481,6 +521,16 @@ class TestSOCKS5ClientEndpoint(unittest.TestCase):
         self.assertEqual(wrappedFac.proto.data, 'xxxxx')
         return d
 
+    def test_dataSentByPeer(self):
+        wrappedFac = FakeFactory()
+        proxy = FakeEndpoint()
+        endpoint = client.SOCKS5ClientEndpoint('', 0, proxy)
+        endpoint.connect(wrappedFac)
+        proxy.proto.dataReceived('\x05\x00\x05\x00\x00\x01444422')
+        proxy.proto.transport.clear()
+        wrappedFac.proto.transport.write('xxxxx')
+        self.assertEqual(proxy.proto.transport.value(), 'xxxxx')
+
 
 class TestSOCKS4ClientEndpoint(unittest.TestCase):
     def test_clientConnectionFailed(self):
@@ -516,3 +566,13 @@ class TestSOCKS4ClientEndpoint(unittest.TestCase):
         d.addCallback(self.assertEqual, wrappedFac.proto)
         self.assertEqual(wrappedFac.proto.data, 'xxxxx')
         return d
+
+    def test_dataSentByPeer(self):
+        wrappedFac = FakeFactory()
+        proxy = FakeEndpoint()
+        endpoint = client.SOCKS4ClientEndpoint('', 0, proxy)
+        endpoint.connect(wrappedFac)
+        proxy.proto.dataReceived('\x00\x5a\x00\x00\x00\x00\x00\x00')
+        proxy.proto.transport.clear()
+        wrappedFac.proto.transport.write('xxxxx')
+        self.assertEqual(proxy.proto.transport.value(), 'xxxxx')
