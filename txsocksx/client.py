@@ -251,3 +251,58 @@ SOCKS4Client = makeProtocol(
     SOCKS4Sender,
     stack(SOCKS4AuthDispatcher, SOCKS4Receiver),
     grammar.bindings)
+
+class SOCKS4ClientFactory(protocol.ClientFactory):
+    protocol = SOCKS4Client
+
+    def __init__(self, host, port, proxiedFactory, user=''):
+        self.host = host
+        self.port = port
+        self.user = user
+        self.proxiedFactory = proxiedFactory
+        self.deferred = defer.Deferred(self._cancel)
+        self.currentCandidate = None
+        self.canceled = False
+
+    def _cancel(self, d):
+        self.currentCandidate.sender.transport.abortConnection()
+        self.canceled = True
+
+    def buildProtocol(self, addr):
+        proto = self.protocol()
+        proto.factory = self
+        self.currentCandidate = proto
+        return proto
+
+    def proxyConnectionFailed(self, reason):
+        if not self.canceled:
+            self.deferred.errback(reason)
+
+    # this method is not called if an endpoint deferred errbacks
+    def clientConnectionFailed(self, connector, reason):
+        self.proxyConnectionFailed(reason)
+
+    def proxyConnectionEstablished(self, proxyProtocol):
+        proto = self.proxiedFactory.buildProtocol(
+            proxyProtocol.sender.transport.getPeer())
+        if proto is None:
+            self.deferred.cancel()
+            return
+        proxyProtocol.proxyEstablished(proto)
+        self.deferred.callback(proto)
+
+
+class SOCKS4ClientEndpoint(object):
+    implements(interfaces.IStreamClientEndpoint)
+
+    def __init__(self, host, port, proxyEndpoint, user=''):
+        self.host = host
+        self.port = port
+        self.proxyEndpoint = proxyEndpoint
+        self.user = user
+
+    def connect(self, fac):
+        proxyFac = SOCKS4ClientFactory(self.host, self.port, fac, self.user)
+        d = self.proxyEndpoint.connect(proxyFac)
+        d.addCallback(lambda proto: proxyFac.deferred)
+        return d
