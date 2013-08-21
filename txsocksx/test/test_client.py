@@ -2,8 +2,8 @@
 # See COPYING for details.
 
 from parsley import makeProtocol, stack
-from twisted.internet.error import ConnectionLost
-from twisted.internet import protocol
+from twisted.internet.error import ConnectionLost, ConnectionRefusedError
+from twisted.internet import defer, protocol
 from twisted.python import failure, log
 from twisted.trial import unittest
 from twisted.test import proto_helpers
@@ -294,3 +294,130 @@ class TestSOCKS4Client(unittest.TestCase):
         proto.connectionLost(connectionLostFailure)
         self.assertEqual(fac.accum.closedReason, connectionLostFailure)
         self.assertEqual(fac.accum.data, 'xxxxx')
+
+
+class FakeFactory(protocol.ClientFactory):
+    protocol = proto_helpers.AccumulatingProtocol
+
+    def __init__(self, returnNoProtocol=False):
+        self.returnNoProtocol = returnNoProtocol
+        self.protocolConnectionMade = defer.Deferred()
+
+    def buildProtocol(self, addr):
+        if self.returnNoProtocol:
+            return None
+        self.proto = protocol.ClientFactory.buildProtocol(self, addr)
+        return self.proto
+
+
+class _TestSOCKSClientFactoryCommon(object):
+    def setUp(self):
+        self.aborted = []
+
+    def makeProto(self, *a, **kw):
+        fac = self.factory(*a, **kw)
+        proto = fac.buildProtocol(None)
+        transport = proto_helpers.StringTransport()
+        transport.abortConnection = lambda: self.aborted.append(True)
+        proto.makeConnection(transport)
+        return fac, proto
+
+    def test_cancellation(self):
+        fac, proto = self.makeProto('', 0, None)
+        fac.deferred.cancel()
+        self.assert_(self.aborted)
+        return self.assertFailure(fac.deferred, defer.CancelledError)
+
+    def test_cancellationBeforeFailure(self):
+        fac, proto = self.makeProto('', 0, None)
+        fac.deferred.cancel()
+        proto.connectionLost(connectionLostFailure)
+        self.assert_(self.aborted)
+        return self.assertFailure(fac.deferred, defer.CancelledError)
+
+    def test_cancellationAfterFailure(self):
+        fac, proto = self.makeProto('', 0, None)
+        proto.connectionLost(connectionLostFailure)
+        fac.deferred.cancel()
+        self.assertFalse(self.aborted)
+        return self.assertFailure(fac.deferred, ConnectionLost)
+
+    def test_clientConnectionFailed(self):
+        fac, proto = self.makeProto('', 0, None)
+        fac.clientConnectionFailed(None, failure.Failure(ConnectionRefusedError()))
+        return self.assertFailure(fac.deferred, ConnectionRefusedError)
+
+
+class TestSOCKS5ClientFactory(_TestSOCKSClientFactoryCommon, unittest.TestCase):
+    factory = client.SOCKS5ClientFactory
+
+    def test_defaultFactory(self):
+        fac, proto = self.makeProto('', 0, None)
+        self.assertEqual(proto.transport.value(), '\x05\x01\x00')
+
+    def test_anonymousAndLoginAuth(self):
+        fac, proto = self.makeProto('', 0, None, methods={'anonymous': (), 'login': ()})
+        self.assertEqual(proto.transport.value(), '\x05\x02\x00\x02')
+
+    def test_justLoginAuth(self):
+        fac, proto = self.makeProto('', 0, None, methods={'login': ()})
+        self.assertEqual(proto.transport.value(), '\x05\x01\x02')
+
+    def test_noAuthMethodsFails(self):
+        self.assertRaises(
+            ValueError, client.SOCKS5ClientFactory, None, None, None, methods={})
+
+    def test_loginAuth(self):
+        fac, proto = self.makeProto('', 0, None, methods={'login': ('spam', 'eggs')})
+        proto.transport.clear()
+        proto.dataReceived('\x05\x02')
+        self.assertEqual(proto.transport.value(), '\x01\x04spam\x04eggs')
+
+    def test_loginAuthAccepted(self):
+        fac, proto = self.makeProto('', 0, None, methods={'login': ('spam', 'eggs')})
+        proto.dataReceived('\x05\x02')
+        proto.transport.clear()
+        proto.dataReceived('\x01\x00')
+        self.assert_(proto.transport.value())
+
+    def test_buildingWrappedFactory(self):
+        wrappedFac = FakeFactory()
+        fac, proto = self.makeProto('', 0, wrappedFac)
+        proto.dataReceived('\x05\x00\x05\x00\x00\x01444422xxxxx')
+        self.assertEqual(wrappedFac.proto.data, 'xxxxx')
+
+    def test_noProtocolFromWrappedFactory(self):
+        wrappedFac = FakeFactory(returnNoProtocol=True)
+        fac, proto = self.makeProto('', 0, wrappedFac)
+        proto.dataReceived('\x05\x00\x05\x00\x00\x01444422')
+        self.assert_(self.aborted)
+        return self.assertFailure(fac.deferred, defer.CancelledError)
+
+
+class TestSOCKS4ClientFactory(_TestSOCKSClientFactoryCommon, unittest.TestCase):
+    factory = client.SOCKS4ClientFactory
+
+    def test_defaultFactory(self):
+        fac, proto = self.makeProto('127.0.0.1', 0, None)
+        self.assertEqual(proto.transport.value(), '\x04\x01\x00\x00\x7f\x00\x00\x01\x00')
+
+    def test_hostname(self):
+        fac, proto = self.makeProto('spam.com', 0, None)
+        self.assertEqual(proto.transport.value(), '\x04\x01\x00\x00\x00\x00\x00\x01\x00spam.com\x00')
+
+    def test_differentUser(self):
+        fac, proto = self.makeProto('127.0.0.1', 0, None, 'spam')
+        self.assertEqual(proto.transport.value(), '\x04\x01\x00\x00\x7f\x00\x00\x01spam\x00')
+
+    def test_buildingWrappedFactory(self):
+        wrappedFac = FakeFactory()
+        fac, proto = self.makeProto('127.0.0.1', 0, wrappedFac)
+        proto.dataReceived('\x00\x5a\x00\x00\x00\x00\x00\x00xxxxx')
+        self.assertEqual(wrappedFac.proto.data, 'xxxxx')
+
+    def test_noProtocolFromWrappedFactory(self):
+        wrappedFac = FakeFactory(returnNoProtocol=True)
+        fac, proto = self.makeProto('', 0, wrappedFac)
+        proto.dataReceived('\x00\x5a\x00\x00\x00\x00\x00\x00xxxxx')
+        self.assert_(self.aborted)
+        return self.assertFailure(fac.deferred, defer.CancelledError)
