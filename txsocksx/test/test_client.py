@@ -11,7 +11,10 @@ from twisted.test import proto_helpers
 from txsocksx import client, errors, grammar
 import txsocksx.constants as c
 
+
 connectionLostFailure = failure.Failure(ConnectionLost())
+connectionRefusedFailure = failure.Failure(ConnectionRefusedError())
+
 
 class FakeSOCKS5ClientFactory(protocol.ClientFactory):
     protocol = client.SOCKS5Client
@@ -344,7 +347,7 @@ class _TestSOCKSClientFactoryCommon(object):
 
     def test_clientConnectionFailed(self):
         fac, proto = self.makeProto('', 0, None)
-        fac.clientConnectionFailed(None, failure.Failure(ConnectionRefusedError()))
+        fac.clientConnectionFailed(None, connectionRefusedFailure)
         return self.assertFailure(fac.deferred, ConnectionRefusedError)
 
 
@@ -421,3 +424,93 @@ class TestSOCKS4ClientFactory(_TestSOCKSClientFactoryCommon, unittest.TestCase):
         proto.dataReceived('\x00\x5a\x00\x00\x00\x00\x00\x00xxxxx')
         self.assert_(self.aborted)
         return self.assertFailure(fac.deferred, defer.CancelledError)
+
+
+class FakeEndpoint(object):
+    def __init__(self, failure=None):
+        self.failure = failure
+
+    def connect(self, fac):
+        if self.failure:
+            return defer.fail(self.failure)
+        self.proto = fac.buildProtocol(None)
+        transport = proto_helpers.StringTransport()
+        self.aborted = []
+        transport.abortConnection = lambda: self.aborted.append(True)
+        self.proto.makeConnection(transport)
+        self.transport = transport
+        return defer.succeed(self.proto)
+
+
+class TestSOCKS5ClientEndpoint(unittest.TestCase):
+    def test_clientConnectionFailed(self):
+        proxy = FakeEndpoint(failure=connectionRefusedFailure)
+        endpoint = client.SOCKS5ClientEndpoint('', 0, proxy)
+        d = endpoint.connect(None)
+        return self.assertFailure(d, ConnectionRefusedError)
+
+    def test_defaultFactory(self):
+        proxy = FakeEndpoint()
+        endpoint = client.SOCKS5ClientEndpoint('', 0, proxy)
+        endpoint.connect(None)
+        self.assertEqual(proxy.transport.value(), '\x05\x01\x00')
+
+    def test_anonymousAndLoginAuth(self):
+        proxy = FakeEndpoint()
+        endpoint = client.SOCKS5ClientEndpoint('', 0, proxy, methods={'anonymous': (), 'login': ()})
+        endpoint.connect(None)
+        self.assertEqual(proxy.transport.value(), '\x05\x02\x00\x02')
+
+    def test_justLoginAuth(self):
+        proxy = FakeEndpoint()
+        endpoint = client.SOCKS5ClientEndpoint('', 0, proxy, methods={'login': ()})
+        endpoint.connect(None)
+        self.assertEqual(proxy.transport.value(), '\x05\x01\x02')
+
+    def test_noAuthMethodsFails(self):
+        self.assertRaises(
+            ValueError, client.SOCKS5ClientEndpoint, None, None, None, methods={})
+
+    def test_buildingWrappedFactory(self):
+        wrappedFac = FakeFactory()
+        proxy = FakeEndpoint()
+        endpoint = client.SOCKS5ClientEndpoint('', 0, proxy)
+        d = endpoint.connect(wrappedFac)
+        proxy.proto.dataReceived('\x05\x00\x05\x00\x00\x01444422xxxxx')
+        self.assertEqual(self.successResultOf(d), wrappedFac.proto)
+        self.assertEqual(wrappedFac.proto.data, 'xxxxx')
+
+
+class TestSOCKS4ClientEndpoint(unittest.TestCase):
+    def test_clientConnectionFailed(self):
+        proxy = FakeEndpoint(failure=connectionRefusedFailure)
+        endpoint = client.SOCKS4ClientEndpoint('', 0, proxy)
+        d = endpoint.connect(None)
+        return self.assertFailure(d, ConnectionRefusedError)
+
+    def test_defaultFactory(self):
+        proxy = FakeEndpoint()
+        endpoint = client.SOCKS4ClientEndpoint('127.0.0.1', 0, proxy)
+        endpoint.connect(None)
+        self.assertEqual(proxy.transport.value(), '\x04\x01\x00\x00\x7f\x00\x00\x01\x00')
+
+    def test_hostname(self):
+        proxy = FakeEndpoint()
+        endpoint = client.SOCKS4ClientEndpoint('spam.com', 0, proxy)
+        endpoint.connect(None)
+        self.assertEqual(proxy.transport.value(), '\x04\x01\x00\x00\x00\x00\x00\x01\x00spam.com\x00')
+
+    def test_differentUser(self):
+        proxy = FakeEndpoint()
+        endpoint = client.SOCKS4ClientEndpoint('127.0.0.1', 0, proxy, 'spam')
+        endpoint.connect(None)
+        self.assertEqual(proxy.transport.value(), '\x04\x01\x00\x00\x7f\x00\x00\x01spam\x00')
+
+    def test_buildingWrappedFactory(self):
+        wrappedFac = FakeFactory()
+        proxy = FakeEndpoint()
+        endpoint = client.SOCKS4ClientEndpoint('', 0, proxy)
+        d = endpoint.connect(wrappedFac)
+        proxy.proto.dataReceived('\x00\x5a\x00\x00\x00\x00\x00\x00xxxxx')
+        self.assertEqual(self.successResultOf(d), wrappedFac.proto)
+        self.assertEqual(wrappedFac.proto.data, 'xxxxx')

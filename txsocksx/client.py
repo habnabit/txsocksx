@@ -175,6 +175,8 @@ class SOCKS5ClientEndpoint(object):
     implements(interfaces.IStreamClientEndpoint)
 
     def __init__(self, host, port, proxyEndpoint, methods={'anonymous': ()}):
+        if not methods:
+            raise ValueError('no auth methods were specified')
         self.host = host
         self.port = port
         self.proxyEndpoint = proxyEndpoint
