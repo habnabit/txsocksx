@@ -34,6 +34,27 @@ class FakeSOCKS5ClientFactory(protocol.ClientFactory):
         proxyProtocol.proxyEstablished(self.accum)
 
 
+class FakeSOCKS4ClientFactory(protocol.ClientFactory):
+    protocol = client.SOCKS4Client
+
+    def __init__(self, host='', port=0, user=''):
+        self.host = host
+        self.port = port
+        self.user = user
+        self.reason = None
+        self.accum = proto_helpers.AccumulatingProtocol()
+        self.expectingReason = False
+
+    def proxyConnectionFailed(self, reason):
+        if self.expectingReason:
+            self.reason = reason
+        else:
+            log.err(reason)
+
+    def proxyConnectionEstablished(self, proxyProtocol):
+        proxyProtocol.proxyEstablished(self.accum)
+
+
 authAdditionGrammar = """
 
 authAddition = 'addition' anything:x -> receiver.authedAddition(x)
@@ -202,4 +223,74 @@ class TestSOCKS5Client(unittest.TestCase):
         proto.dataReceived('additionz')
         self.assertEqual(proto.receiver.additionParsed, 'z')
         proto.dataReceived('\x05\x00\x00\x01444422xxxxx')
+        self.assertEqual(fac.accum.data, 'xxxxx')
+
+
+class TestSOCKS4Client(unittest.TestCase):
+    def makeProto(self, *a, **kw):
+        protoClass = kw.pop('_protoClass', client.SOCKS4Client)
+        fac = FakeSOCKS4ClientFactory(*a, **kw)
+        fac.protocol = protoClass
+        proto = fac.buildProtocol(None)
+        transport = proto_helpers.StringTransport()
+        transport.abortConnection = lambda: None
+        proto.makeConnection(transport)
+        return fac, proto
+
+    def test_initialHandshake(self):
+        fac, proto = self.makeProto(host='0.0.0.0', port=0x1234)
+        self.assertEqual(proto.transport.value(), '\x04\x01\x12\x34\x00\x00\x00\x00\x00')
+
+    def test_initialHandshakeWithHostname(self):
+        fac, proto = self.makeProto(host='example.com', port=0x4321)
+        self.assertEqual(proto.transport.value(), '\x04\x01\x43\x21\x00\x00\x00\x01\x00example.com\x00')
+
+    def test_initialHandshakeWithUser(self):
+        fac, proto = self.makeProto(host='0.0.0.0', port=0x1234, user='spam')
+        self.assertEqual(proto.transport.value(), '\x04\x01\x12\x34\x00\x00\x00\x00spam\x00')
+
+    def test_initialHandshakeWithUserAndHostname(self):
+        fac, proto = self.makeProto(host='spam.com', port=0x1234, user='spam')
+        self.assertEqual(proto.transport.value(), '\x04\x01\x12\x34\x00\x00\x00\x01spam\x00spam.com\x00')
+
+    def test_handshakeEatsEnoughBytes(self):
+        fac, proto = self.makeProto()
+        proto.dataReceived('\x00\x5a\x00\x00\x00\x00\x00\x00xxxxx')
+        self.assertEqual(fac.accum.data, 'xxxxx')
+
+    def test_connectionRequestError(self):
+        fac, proto = self.makeProto()
+        fac.expectingReason = True
+        proto.dataReceived('\x00\x5b\x00\x00\x00\x00\x00\x00xxxxx')
+        self.failIfEqual(fac.reason, None)
+        self.failUnlessIsInstance(fac.reason.value, errors.RequestRejectedOrFailed)
+
+    def test_buffering(self):
+        fac, proto = self.makeProto()
+        for c in '\x00\x5a\x00\x00\x00\x00\x00\x00xxxxx':
+            proto.dataReceived(c)
+        self.assertEqual(fac.accum.data, 'xxxxx')
+
+    def test_connectionLostEarly(self):
+        wholeRequest = '\x00\x5a\x00\x00\x00\x00\x00\x00'
+        for e in xrange(len(wholeRequest)):
+            partialRequest = wholeRequest[:e]
+            fac, proto = self.makeProto()
+            fac.expectingReason = True
+            if partialRequest:
+                proto.dataReceived(partialRequest)
+            proto.connectionLost(connectionLostFailure)
+            self.failUnlessIsInstance(fac.reason.value, ConnectionLost)
+
+    def test_connectionLostAfterNegotiation(self):
+        fac, proto = self.makeProto()
+        proto.dataReceived('\x00\x5a\x00\x00\x00\x00\x00\x00')
+        proto.connectionLost(connectionLostFailure)
+        self.assertEqual(fac.accum.closedReason, connectionLostFailure)
+
+    def test_connectionLostAfterNegotiationWithSomeBytes(self):
+        fac, proto = self.makeProto()
+        proto.dataReceived('\x00\x5a\x00\x00\x00\x00\x00\x00xxxxx')
+        proto.connectionLost(connectionLostFailure)
+        self.assertEqual(fac.accum.closedReason, connectionLostFailure)
         self.assertEqual(fac.accum.data, 'xxxxx')

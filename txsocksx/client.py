@@ -1,6 +1,7 @@
 # Copyright (c) Aaron Gallagher <_@habnab.it>
 # See COPYING for details.
 
+import socket
 import struct
 
 from parsley import makeProtocol, stack
@@ -14,7 +15,7 @@ from txsocksx import grammar
 def socks_host(host):
     return chr(c.ATYP_DOMAINNAME) + chr(len(host)) + host
 
-class SOCKS5ClientTransport(object):
+class SOCKSClientTransport(object):
     def __init__(self, wrappedClient):
         self.wrappedClient = wrappedClient
         self.transport = self.wrappedClient.transport
@@ -101,7 +102,7 @@ class SOCKS5Receiver(object):
 
     def proxyEstablished(self, other):
         self.otherProtocol = other
-        other.makeConnection(SOCKS5ClientTransport(self.sender))
+        other.makeConnection(SOCKSClientTransport(self.sender))
 
     def dataReceived(self, data):
         self.otherProtocol.dataReceived(data)
@@ -181,3 +182,72 @@ class SOCKS5ClientEndpoint(object):
         d = self.proxyEndpoint.connect(proxyFac)
         d.addCallback(lambda proto: proxyFac.deferred)
         return d
+
+
+class SOCKS4Sender(object):
+    def __init__(self, transport):
+        self.transport = transport
+
+    def sendRequest(self, host, port, user):
+        data = struct.pack('!BBH', c.VER_SOCKS4, c.CMD_CONNECT, port)
+        try:
+            host = socket.inet_pton(socket.AF_INET, host)
+        except socket.error:
+            host, suffix = '\0\0\0\1', host + '\0'
+        else:
+            suffix = ''
+        self.transport.write(data + host + user + '\0' + suffix)
+
+
+class SOCKS4AuthDispatcher(object):
+    def __init__(self, wrapped):
+        self.w = wrapped
+
+    def __getattr__(self, attr):
+        return getattr(self.w, attr)
+
+    def authSelected(self, method):
+        if method not in self.w.factory.methods:
+            raise e.MethodsNotAcceptedError('no method proprosed was accepted',
+                                            self.w.factory.methods, method)
+        authMethod = getattr(self.w, 'auth_' + self.w.authMethodMap[method])
+        authMethod(*self.w.factory.methods[method])
+
+
+class SOCKS4Receiver(object):
+    implements(interfaces.ITransport)
+    otherProtocol = None
+    currentRule = 'SOCKS4ClientState_initial'
+
+    def __init__(self, sender):
+        self.sender = sender
+
+    def prepareParsing(self, parser):
+        self.factory = parser.factory
+        self.sender.sendRequest(self.factory.host, self.factory.port, self.factory.user)
+
+    def serverResponse(self, status, host, port):
+        if status != c.SOCKS4_GRANTED:
+            raise e.socks4ErrorMap.get(status)()
+
+        self.factory.proxyConnectionEstablished(self)
+        self.currentRule = 'SOCKSState_readData'
+
+    def proxyEstablished(self, other):
+        self.otherProtocol = other
+        other.makeConnection(SOCKSClientTransport(self.sender))
+
+    def dataReceived(self, data):
+        self.otherProtocol.dataReceived(data)
+
+    def finishParsing(self, reason):
+        if self.otherProtocol:
+            self.otherProtocol.connectionLost(reason)
+        else:
+            self.factory.proxyConnectionFailed(reason)
+
+SOCKS4Client = makeProtocol(
+    grammar.grammarSource,
+    SOCKS4Sender,
+    stack(SOCKS4AuthDispatcher, SOCKS4Receiver),
+    grammar.bindings)

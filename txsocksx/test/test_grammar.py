@@ -40,9 +40,9 @@ class TestGrammar(unittest.TestCase):
 
     def test_SOCKS4Response(self):
         parse = stringParserFromRule('SOCKS4Response')
-        self.assertEqual(parse('\x00' * 8), 0)
-        self.assertEqual(parse('\x00\x01' + '\x00' * 6), 1)
-        self.assertEqual(parse('\x00\x01' + '\xff' * 6), 1)
+        self.assertEqual(parse('\x00' * 8), (0, '0.0.0.0', 0))
+        self.assertEqual(parse('\x00\x01' + '\x00' * 6), (1, '0.0.0.0', 0))
+        self.assertEqual(parse('\x00\x01' + '\xff' * 6), (1, '255.255.255.255', 65535))
 
     def test_SOCKS5Command(self):
         parse = stringParserFromRule('SOCKS5Command')

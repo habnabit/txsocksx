@@ -21,11 +21,11 @@ SOCKS4aHostUser = ( '\x00'{3} ~'\x00' anything cstring:user cstring:host -> (hos
                   )
 
 SOCKS4Request = '\x04' SOCKS4Command:command short:port SOCKS4aHostUser:hostuser -> (command, port) + hostuser
-SOCKS4Response = '\x00' byte:status anything{6} -> status
+SOCKS4Response = '\x00' byte:status short:port ipv4Address:address -> (status, address, port)
 
 
 SOCKS4ServerState_initial = SOCKS4Request:request -> receiver.clientRequest(*request)
-SOCKS4ClientState_initial = SOCKS4Response:status -> receiver.serverResponse(status)
+SOCKS4ClientState_initial = SOCKS4Response:response -> receiver.serverResponse(*response)
 
 
 SOCKS5Command = (SOCKS4Command | '\x03' -> 'udp-associate')
