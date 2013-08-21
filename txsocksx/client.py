@@ -202,21 +202,6 @@ class SOCKS4Sender(object):
         self.transport.write(data + host + user + '\0' + suffix)
 
 
-class SOCKS4AuthDispatcher(object):
-    def __init__(self, wrapped):
-        self.w = wrapped
-
-    def __getattr__(self, attr):
-        return getattr(self.w, attr)
-
-    def authSelected(self, method):
-        if method not in self.w.factory.methods:
-            raise e.MethodsNotAcceptedError('no method proprosed was accepted',
-                                            self.w.factory.methods, method)
-        authMethod = getattr(self.w, 'auth_' + self.w.authMethodMap[method])
-        authMethod(*self.w.factory.methods[method])
-
-
 class SOCKS4Receiver(object):
     implements(interfaces.ITransport)
     otherProtocol = None
@@ -252,7 +237,7 @@ class SOCKS4Receiver(object):
 SOCKS4Client = makeProtocol(
     grammar.grammarSource,
     SOCKS4Sender,
-    stack(SOCKS4AuthDispatcher, SOCKS4Receiver),
+    SOCKS4Receiver,
     grammar.bindings)
 
 class SOCKS4ClientFactory(_SOCKSClientFactory):
