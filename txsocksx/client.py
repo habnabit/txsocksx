@@ -15,13 +15,45 @@ from txsocksx import grammar
 def socks_host(host):
     return chr(c.ATYP_DOMAINNAME) + chr(len(host)) + host
 
-class SOCKSClientTransport(object):
+class _SOCKSClientTransport(object):
     def __init__(self, wrappedClient):
         self.wrappedClient = wrappedClient
         self.transport = self.wrappedClient.transport
 
     def __getattr__(self, attr):
         return getattr(self.transport, attr)
+
+class _SOCKSClientFactory(protocol.ClientFactory):
+    currentCandidate = None
+    canceled = False
+
+    def _cancel(self, d):
+        self.currentCandidate.sender.transport.abortConnection()
+        self.canceled = True
+
+    def buildProtocol(self, addr):
+        proto = self.protocol()
+        proto.factory = self
+        self.currentCandidate = proto
+        return proto
+
+    def proxyConnectionFailed(self, reason):
+        if not self.canceled:
+            self.deferred.errback(reason)
+
+    # this method is not called if an endpoint deferred errbacks
+    def clientConnectionFailed(self, connector, reason):
+        self.proxyConnectionFailed(reason)
+
+    def proxyConnectionEstablished(self, proxyProtocol):
+        proto = self.proxiedFactory.buildProtocol(
+            proxyProtocol.sender.transport.getPeer())
+        if proto is None:
+            self.deferred.cancel()
+            return
+        proxyProtocol.proxyEstablished(proto)
+        self.deferred.callback(proto)
+
 
 class SOCKS5Sender(object):
     def __init__(self, transport):
@@ -102,7 +134,7 @@ class SOCKS5Receiver(object):
 
     def proxyEstablished(self, other):
         self.otherProtocol = other
-        other.makeConnection(SOCKSClientTransport(self.sender))
+        other.makeConnection(_SOCKSClientTransport(self.sender))
 
     def dataReceived(self, data):
         self.otherProtocol.dataReceived(data)
@@ -119,7 +151,7 @@ SOCKS5Client = makeProtocol(
     stack(SOCKS5AuthDispatcher, SOCKS5Receiver),
     grammar.bindings)
 
-class SOCKS5ClientFactory(protocol.ClientFactory):
+class SOCKS5ClientFactory(_SOCKSClientFactory):
     protocol = SOCKS5Client
 
     authMethodMap = {
@@ -137,35 +169,6 @@ class SOCKS5ClientFactory(protocol.ClientFactory):
             (self.authMethodMap[method], value)
             for method, value in methods.iteritems())
         self.deferred = defer.Deferred(self._cancel)
-        self.currentCandidate = None
-        self.canceled = False
-
-    def _cancel(self, d):
-        self.currentCandidate.sender.transport.abortConnection()
-        self.canceled = True
-
-    def buildProtocol(self, addr):
-        proto = self.protocol()
-        proto.factory = self
-        self.currentCandidate = proto
-        return proto
-
-    def proxyConnectionFailed(self, reason):
-        if not self.canceled:
-            self.deferred.errback(reason)
-
-    # this method is not called if an endpoint deferred errbacks
-    def clientConnectionFailed(self, connector, reason):
-        self.proxyConnectionFailed(reason)
-
-    def proxyConnectionEstablished(self, proxyProtocol):
-        proto = self.proxiedFactory.buildProtocol(
-            proxyProtocol.sender.transport.getPeer())
-        if proto is None:
-            self.deferred.cancel()
-            return
-        proxyProtocol.proxyEstablished(proto)
-        self.deferred.callback(proto)
 
 
 class SOCKS5ClientEndpoint(object):
@@ -235,7 +238,7 @@ class SOCKS4Receiver(object):
 
     def proxyEstablished(self, other):
         self.otherProtocol = other
-        other.makeConnection(SOCKSClientTransport(self.sender))
+        other.makeConnection(_SOCKSClientTransport(self.sender))
 
     def dataReceived(self, data):
         self.otherProtocol.dataReceived(data)
@@ -252,7 +255,7 @@ SOCKS4Client = makeProtocol(
     stack(SOCKS4AuthDispatcher, SOCKS4Receiver),
     grammar.bindings)
 
-class SOCKS4ClientFactory(protocol.ClientFactory):
+class SOCKS4ClientFactory(_SOCKSClientFactory):
     protocol = SOCKS4Client
 
     def __init__(self, host, port, proxiedFactory, user=''):
@@ -261,36 +264,6 @@ class SOCKS4ClientFactory(protocol.ClientFactory):
         self.user = user
         self.proxiedFactory = proxiedFactory
         self.deferred = defer.Deferred(self._cancel)
-        self.currentCandidate = None
-        self.canceled = False
-
-    def _cancel(self, d):
-        self.currentCandidate.sender.transport.abortConnection()
-        self.canceled = True
-
-    def buildProtocol(self, addr):
-        proto = self.protocol()
-        proto.factory = self
-        self.currentCandidate = proto
-        return proto
-
-    def proxyConnectionFailed(self, reason):
-        if not self.canceled:
-            self.deferred.errback(reason)
-
-    # this method is not called if an endpoint deferred errbacks
-    def clientConnectionFailed(self, connector, reason):
-        self.proxyConnectionFailed(reason)
-
-    def proxyConnectionEstablished(self, proxyProtocol):
-        proto = self.proxiedFactory.buildProtocol(
-            proxyProtocol.sender.transport.getPeer())
-        if proto is None:
-            self.deferred.cancel()
-            return
-        proxyProtocol.proxyEstablished(proto)
-        self.deferred.callback(proto)
-
 
 class SOCKS4ClientEndpoint(object):
     implements(interfaces.IStreamClientEndpoint)
