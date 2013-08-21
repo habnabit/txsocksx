@@ -15,13 +15,6 @@ from txsocksx import grammar
 def socks_host(host):
     return chr(c.ATYP_DOMAINNAME) + chr(len(host)) + host
 
-class _SOCKSClientTransport(object):
-    def __init__(self, wrappedClient):
-        self.wrappedClient = wrappedClient
-        self.transport = self.wrappedClient.transport
-
-    def __getattr__(self, attr):
-        return getattr(self.transport, attr)
 
 class _SOCKSClientFactory(protocol.ClientFactory):
     currentCandidate = None
@@ -53,6 +46,21 @@ class _SOCKSClientFactory(protocol.ClientFactory):
             return
         proxyProtocol.proxyEstablished(proto)
         self.deferred.callback(proto)
+
+class _SOCKSReceiver(object):
+    def proxyEstablished(self, other):
+        self.otherProtocol = other
+        self.sender.transport.protocol = other
+        other.makeConnection(self.sender.transport)
+
+    def dataReceived(self, data):
+        self.otherProtocol.dataReceived(data)
+
+    def finishParsing(self, reason):
+        if self.otherProtocol:
+            self.otherProtocol.connectionLost(reason)
+        else:
+            self.factory.proxyConnectionFailed(reason)
 
 
 class SOCKS5Sender(object):
@@ -90,7 +98,7 @@ class SOCKS5AuthDispatcher(object):
         authMethod(*self.w.factory.methods[method])
 
 
-class SOCKS5Receiver(object):
+class SOCKS5Receiver(_SOCKSReceiver):
     implements(interfaces.ITransport)
     otherProtocol = None
     currentRule = 'SOCKS5ClientState_initial'
@@ -131,20 +139,6 @@ class SOCKS5Receiver(object):
 
         self.factory.proxyConnectionEstablished(self)
         self.currentRule = 'SOCKSState_readData'
-
-    def proxyEstablished(self, other):
-        self.otherProtocol = other
-        self.sender.transport.protocol = other
-        other.makeConnection(_SOCKSClientTransport(self.sender))
-
-    def dataReceived(self, data):
-        self.otherProtocol.dataReceived(data)
-
-    def finishParsing(self, reason):
-        if self.otherProtocol:
-            self.otherProtocol.connectionLost(reason)
-        else:
-            self.factory.proxyConnectionFailed(reason)
 
 SOCKS5Client = makeProtocol(
     grammar.grammarSource,
@@ -205,7 +199,7 @@ class SOCKS4Sender(object):
         self.transport.write(data + host + user + '\0' + suffix)
 
 
-class SOCKS4Receiver(object):
+class SOCKS4Receiver(_SOCKSReceiver):
     implements(interfaces.ITransport)
     otherProtocol = None
     currentRule = 'SOCKS4ClientState_initial'
@@ -223,20 +217,6 @@ class SOCKS4Receiver(object):
 
         self.factory.proxyConnectionEstablished(self)
         self.currentRule = 'SOCKSState_readData'
-
-    def proxyEstablished(self, other):
-        self.otherProtocol = other
-        self.sender.transport.protocol = other
-        other.makeConnection(_SOCKSClientTransport(self.sender))
-
-    def dataReceived(self, data):
-        self.otherProtocol.dataReceived(data)
-
-    def finishParsing(self, reason):
-        if self.otherProtocol:
-            self.otherProtocol.connectionLost(reason)
-        else:
-            self.factory.proxyConnectionFailed(reason)
 
 SOCKS4Client = makeProtocol(
     grammar.grammarSource,
