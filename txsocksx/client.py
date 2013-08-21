@@ -134,6 +134,7 @@ class SOCKS5Receiver(object):
 
     def proxyEstablished(self, other):
         self.otherProtocol = other
+        self.sender.transport.protocol = other
         other.makeConnection(_SOCKSClientTransport(self.sender))
 
     def dataReceived(self, data):
@@ -225,6 +226,7 @@ class SOCKS4Receiver(object):
 
     def proxyEstablished(self, other):
         self.otherProtocol = other
+        self.sender.transport.protocol = other
         other.makeConnection(_SOCKSClientTransport(self.sender))
 
     def dataReceived(self, data):
