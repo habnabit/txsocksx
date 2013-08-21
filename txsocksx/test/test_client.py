@@ -235,8 +235,14 @@ class TestSOCKS5Client(unittest.TestCase):
         fac.accum.transport.write('xxxxx')
         self.assertEqual(proto.transport.value(), 'xxxxx')
 
+    def test_protocolSwitchingWithoutAProtocolAttribute(self):
+        fac, proto = self.makeProto()
+        proto.dataReceived('\x05\x00\x05\x00\x00\x01444422')
+        self.assertFalse(hasattr(proto.transport, 'protocol'))
+
     def test_protocolSwitching(self):
         fac, proto = self.makeProto()
+        proto.transport.protocol = None
         proto.dataReceived('\x05\x00\x05\x00\x00\x01444422')
         self.assertEqual(proto.transport.protocol, fac.accum)
 
@@ -317,8 +323,14 @@ class TestSOCKS4Client(unittest.TestCase):
         fac.accum.transport.write('xxxxx')
         self.assertEqual(proto.transport.value(), 'xxxxx')
 
+    def test_protocolSwitchingWithoutAProtocolAttribute(self):
+        fac, proto = self.makeProto()
+        proto.dataReceived('\x00\x5a\x00\x00\x00\x00\x00\x00')
+        self.assertFalse(hasattr(proto.transport, 'protocol'))
+
     def test_protocolSwitching(self):
         fac, proto = self.makeProto()
+        proto.transport.protocol = None
         proto.dataReceived('\x00\x5a\x00\x00\x00\x00\x00\x00')
         self.assertEqual(proto.transport.protocol, fac.accum)
 

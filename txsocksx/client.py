@@ -50,8 +50,11 @@ class _SOCKSClientFactory(protocol.ClientFactory):
 class _SOCKSReceiver(object):
     def proxyEstablished(self, other):
         self.otherProtocol = other
-        self.sender.transport.protocol = other
         other.makeConnection(self.sender.transport)
+
+        # a bit rude, but a huge performance increase
+        if hasattr(self.sender.transport, 'protocol'):
+            self.sender.transport.protocol = other
 
     def dataReceived(self, data):
         self.otherProtocol.dataReceived(data)
