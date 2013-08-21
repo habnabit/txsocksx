@@ -477,8 +477,9 @@ class TestSOCKS5ClientEndpoint(unittest.TestCase):
         endpoint = client.SOCKS5ClientEndpoint('', 0, proxy)
         d = endpoint.connect(wrappedFac)
         proxy.proto.dataReceived('\x05\x00\x05\x00\x00\x01444422xxxxx')
-        self.assertEqual(self.successResultOf(d), wrappedFac.proto)
+        d.addCallback(self.assertEqual, wrappedFac.proto)
         self.assertEqual(wrappedFac.proto.data, 'xxxxx')
+        return d
 
 
 class TestSOCKS4ClientEndpoint(unittest.TestCase):
@@ -512,5 +513,6 @@ class TestSOCKS4ClientEndpoint(unittest.TestCase):
         endpoint = client.SOCKS4ClientEndpoint('', 0, proxy)
         d = endpoint.connect(wrappedFac)
         proxy.proto.dataReceived('\x00\x5a\x00\x00\x00\x00\x00\x00xxxxx')
-        self.assertEqual(self.successResultOf(d), wrappedFac.proto)
+        d.addCallback(self.assertEqual, wrappedFac.proto)
         self.assertEqual(wrappedFac.proto.data, 'xxxxx')
+        return d
