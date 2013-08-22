@@ -8,6 +8,7 @@ from twisted.python import failure, log
 from twisted.trial import unittest
 from twisted.test import proto_helpers
 
+from txsocksx.test.util import FakeEndpoint
 from txsocksx import client, errors, grammar
 import txsocksx.constants as c
 
@@ -476,22 +477,6 @@ class TestSOCKS4ClientFactory(_TestSOCKSClientFactoryCommon, unittest.TestCase):
         proto.transport.clear()
         wrappedFac.proto.transport.write('xxxxx')
         self.assertEqual(proto.transport.value(), 'xxxxx')
-
-
-class FakeEndpoint(object):
-    def __init__(self, failure=None):
-        self.failure = failure
-
-    def connect(self, fac):
-        if self.failure:
-            return defer.fail(self.failure)
-        self.proto = fac.buildProtocol(None)
-        transport = proto_helpers.StringTransport()
-        self.aborted = []
-        transport.abortConnection = lambda: self.aborted.append(True)
-        self.proto.makeConnection(transport)
-        self.transport = transport
-        return defer.succeed(self.proto)
 
 
 class TestSOCKS5ClientEndpoint(unittest.TestCase):
