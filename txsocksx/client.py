@@ -170,6 +170,27 @@ class SOCKS5ClientFactory(_SOCKSClientFactory):
 
 
 class SOCKS5ClientEndpoint(object):
+    """An endpoint which does SOCKS5 negotiation.
+
+    :param host: The hostname to connect to through the SOCKS5 server. This
+        will not be resolved by ``txsocksx`` but will be sent without
+        modification to the SOCKS5 server to be resolved remotely.
+    :param port: The port to connect to through the SOCKS5 server.
+    :param proxyEndpoint: The endpoint of the SOCKS5 server. This must provide
+        ``IStreamClientEndpoint``.
+    :param methods: The authentication methods to try.
+
+    Authentication methods are specified as a dict mapping from method names to
+    tuples. By default, the only method tried is anonymous authentication, so
+    the default *methods* is ``{'anonymous': ()}``.
+
+    The ``anonymous`` auth method must map to an empty tuple if provided.
+
+    The other method available by default is ``login``. ``login`` must map to a
+    tuple of ``(username, password)``.
+
+    """
+
     implements(interfaces.IStreamClientEndpoint)
 
     def __init__(self, host, port, proxyEndpoint, methods={'anonymous': ()}):
@@ -181,6 +202,30 @@ class SOCKS5ClientEndpoint(object):
         self.methods = methods
 
     def connect(self, fac):
+        """Connect over SOCKS5.
+
+        The provided factory will have its ``buildProtocol`` method once a
+        SOCKS5 connection has been successfully negotiated. Returns a
+        ``Deferred`` which will fire with the resulting ``Protocol`` when
+        negotiation finishes, or errback for a variety of reasons. For example:
+
+        1. If the ``Deferred`` returned by ``proxyEndpoint.connect`` errbacks
+           (e.g. the connection to the SOCKS5 server was refused).
+        2. If the SOCKS5 server gave a non-success response.
+        3. If the SOCKS5 server did not reply with valid SOCKS5.
+        4. If the ``Deferred`` returned from ``connect`` was cancelled.
+
+        The returned ``Deferred`` is cancelable during negotiation: the
+        connection will immediately close and the ``Deferred`` will errback
+        with a ``CancelledError``. The ``Deferred`` can be canceled before
+        negotiation starts only if the ``Deferred`` returned by
+        ``proxyEndpoint.connect`` is cancelable.
+
+        If the factory's ``buildProtocol`` returns ``None``, the connection
+        will immediately close.
+
+        """
+
         proxyFac = SOCKS5ClientFactory(self.host, self.port, fac, self.methods)
         d = self.proxyEndpoint.connect(proxyFac)
         d.addCallback(lambda proto: proxyFac.deferred)
@@ -238,6 +283,21 @@ class SOCKS4ClientFactory(_SOCKSClientFactory):
         self.deferred = defer.Deferred(self._cancel)
 
 class SOCKS4ClientEndpoint(object):
+    """An endpoint which does SOCKS4 or SOCKS4a negotiation.
+
+    :param host: The hostname or IP to connect to through the SOCKS4 server. If
+        this is a valid IPv4 address, it will be sent to the server as a SOCKS4
+        request. Otherwise, *host* will be sent as a hostname in a SOCKS4a
+        request. In the SOCKS4a case, the hostname will not be resolved by
+        ``txsocksx`` but will be sent without modification to the SOCKS4 server
+        to be resolved remotely.
+    :param port: The port to connect to through the SOCKS4 server.
+    :param proxyEndpoint: The endpoint of the SOCKS4 server. This must provide
+        ``IStreamClientEndpoint``.
+    :param user: The user ID to send to the SOCKS4 server.
+
+    """
+
     implements(interfaces.IStreamClientEndpoint)
 
     def __init__(self, host, port, proxyEndpoint, user=''):
@@ -247,6 +307,30 @@ class SOCKS4ClientEndpoint(object):
         self.user = user
 
     def connect(self, fac):
+        """Connect over SOCKS4.
+
+        The provided factory will have its ``buildProtocol`` method once a
+        SOCKS4 connection has been successfully negotiated. Returns a
+        ``Deferred`` which will fire with the resulting ``Protocol`` when
+        negotiation finishes, or errback for a variety of reasons. For example:
+
+        1. If the ``Deferred`` returned by ``proxyEndpoint.connect`` errbacks
+           (e.g. the connection to the SOCKS4 server was refused).
+        2. If the SOCKS4 server gave a non-success response.
+        3. If the SOCKS4 server did not reply with valid SOCKS4.
+        4. If the ``Deferred`` returned from ``connect`` was cancelled.
+
+        The returned ``Deferred`` is cancelable during negotiation: the
+        connection will immediately close and the ``Deferred`` will errback
+        with a ``CancelledError``. The ``Deferred`` can be canceled before
+        negotiation starts only if the ``Deferred`` returned by
+        ``proxyEndpoint.connect`` is cancelable.
+
+        If the factory's ``buildProtocol`` returns ``None``, the connection
+        will immediately close.
+
+        """
+
         proxyFac = SOCKS4ClientFactory(self.host, self.port, fac, self.user)
         d = self.proxyEndpoint.connect(proxyFac)
         d.addCallback(lambda proto: proxyFac.deferred)
