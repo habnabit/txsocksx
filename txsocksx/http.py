@@ -1,3 +1,6 @@
+# Copyright (c) Aaron Gallagher <_@habnab.it>
+# See COPYING for details.
+
 from twisted.web.client import Agent, SchemeNotSupported
 
 from txsocksx.client import SOCKS4ClientEndpoint, SOCKS5ClientEndpoint
