@@ -1,13 +1,23 @@
 # Copyright (c) Aaron Gallagher <_@habnab.it>
 # See COPYING for details.
 
+from twisted.python.versions import Version
 from twisted.trial import unittest
+import twisted
 
 from txsocksx.test.util import FakeEndpoint
 from txsocksx.http import SOCKS4Agent, SOCKS5Agent
 
 
+if twisted.version < Version('twisted', 12, 1, 0):
+    skip = 'txsocksx.http requires twisted 12.1 or newer'
+else:
+    skip = None
+
+
 class TestSOCKS5Agent(unittest.TestCase):
+    skip = skip
+
     def test_HTTPRequest(self):
         endpoint = FakeEndpoint()
         agent = SOCKS5Agent(None, proxyEndpoint=endpoint)
@@ -34,6 +44,8 @@ class TestSOCKS5Agent(unittest.TestCase):
 
 
 class TestSOCKS4Agent(unittest.TestCase):
+    skip = skip
+
     def test_HTTP4Request(self):
         endpoint = FakeEndpoint()
         agent = SOCKS4Agent(None, proxyEndpoint=endpoint)
