@@ -1,6 +1,13 @@
 # Copyright (c) Aaron Gallagher <_@habnab.it>
 # See COPYING for details.
 
+"""``twisted.web.client`` adapters for SOCKS4/4a and SOCKS5 connections.
+
+This requires twisted 12.1 or greater to use.
+
+"""
+
+
 from twisted.web.client import Agent, SchemeNotSupported
 
 from txsocksx.client import SOCKS4ClientEndpoint, SOCKS5ClientEndpoint

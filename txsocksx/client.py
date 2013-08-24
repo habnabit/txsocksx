@@ -1,6 +1,11 @@
 # Copyright (c) Aaron Gallagher <_@habnab.it>
 # See COPYING for details.
 
+"""SOCKS4/4a and SOCKS5 client endpoints.
+
+"""
+
+
 import socket
 import struct
 
