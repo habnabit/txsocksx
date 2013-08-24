@@ -17,8 +17,13 @@ API
 ``txsocksx.http``
 -----------------
 
-.. automodule:: txsocksx.http
-   :members: SOCKS4Agent, SOCKS5Agent
+.. module:: txsocksx.http
+
+.. autoclass:: SOCKS4Agent(*a, proxyEndpoint, endpointArgs={}, **kw)
+   :members:
+
+.. autoclass:: SOCKS5Agent(*a, proxyEndpoint, endpointArgs={}, **kw)
+   :members:
 
 ``txsocksx.ssl``
 -----------------
