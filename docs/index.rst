@@ -103,10 +103,11 @@ Making HTTP requests
 --------------------
 
 Twisted's builtin `Agent`_ HTTP client does not support being handed an
-arbitrary endpoint. (Yet. `Ticket #6634`_ was filed to make this a supported
-API.) ``txsocksx`` provides an ``Agent`` as a workaround, but it uses a private
-API. There are no guarantees that this approach will run in newer versions of
-Twisted, but ``txsocksx.http`` will attempt to provide a consistent API.
+arbitrary endpoint. (Yet. `Ticket #6634`_ was filed to make this an API
+directly supported by Twisted.) ``txsocksx`` provides an ``Agent`` as a
+workaround, but it uses a private API. There are no guarantees that this
+approach will run in newer versions of Twisted, but ``txsocksx.http`` will
+attempt to provide a consistent API.
 
 While ``txsocksx`` requires only Twisted 10.1, ``txsocks.http`` requires
 Twisted 12.1 or greater. Its usage is almost identical to normal ``Agent``

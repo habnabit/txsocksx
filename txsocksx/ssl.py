@@ -24,6 +24,15 @@ class SSLWrapClientEndpoint(object):
 
 
 class TLSStarterClientEndpointWrapper(object):
+    """An endpoint which automatically starts TLS.
+
+    :param contextFactory: A `ContextFactory`_ instance.
+    :param wrappedEndpoint: The endpoint to wrap.
+
+    .. _ContextFactory: http://twistedmatrix.com/documents/current/api/twisted.internet.protocol.ClientFactory.html
+
+    """
+
     implements(interfaces.IStreamClientEndpoint)
 
     def __init__(self, contextFactory, wrappedEndpoint):
@@ -35,4 +44,19 @@ class TLSStarterClientEndpointWrapper(object):
         return proto
 
     def connect(self, fac):
+        """Connect to the wrapped endpoint, then start TLS.
+
+        ``wrappedEndpoint.connect(fac)`` must return a ``Deferred`` which will
+        fire with a ``Protocol`` whose transport implements `ITLSTransport`_
+        for the ``startTLS`` method. ``startTLS`` will be called immediately
+        after the ``Deferred`` fires.
+
+        :returns: A ``Deferred`` which fires with the same ``Protocol`` as
+            ``wrappedEndpoint.connect(fac)`` fires with. If that ``Deferred``
+            errbacks, so will the returned deferred.
+
+        .. _ITLSTransport: http://twistedmatrix.com/documents/current/api/twisted.internet.interfaces.ITLSTransport.html
+
+        """
+
         return self.wrappedEndpoint.connect(fac).addCallback(self._startTLS)

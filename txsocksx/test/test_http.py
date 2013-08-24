@@ -10,7 +10,7 @@ from txsocksx.http import SOCKS4Agent, SOCKS5Agent
 
 
 if twisted.version < Version('twisted', 12, 1, 0):
-    skip = 'txsocksx.http requires twisted 12.1 or newer'
+    skip = 'txsocksx.http requires Twisted 12.1 or newer'
 else:
     skip = None
 

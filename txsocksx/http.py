@@ -3,7 +3,7 @@
 
 """``twisted.web.client`` adapters for SOCKS4/4a and SOCKS5 connections.
 
-This requires twisted 12.1 or greater to use.
+This requires Twisted 12.1 or greater to use.
 
 """
 
