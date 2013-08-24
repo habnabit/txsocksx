@@ -125,7 +125,7 @@ constructs it::
                       endpointArgs=dict(methods={'login': ('spam', 'eggs')}))
   deferred = agent.request('GET', 'http://example.com/')
 
-|SOCKS5Agent| transparently supports HTTPS as via
+|SOCKS5Agent| transparently supports HTTPS via
 |TLSStarterClientEndpointWrapper|.
 
 
