@@ -1,9 +1,14 @@
 # Copyright (c) Aaron Gallagher <_@habnab.it>
 # See COPYING for details.
 
+"""SSL/TLS convenience wrappers for endpoints.
+
+"""
+
+
 from twisted.protocols import tls
 from twisted.internet import interfaces
-from zope.interface import implements, directlyProvides
+from zope.interface import implements
 
 
 class SSLWrapClientEndpoint(object):
