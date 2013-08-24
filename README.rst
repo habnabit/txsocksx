@@ -1,9 +1,14 @@
+.. image:: https://travis-ci.org/habnabit/txsocksx.png
+
+.. image:: https://coveralls.io/r/habnabit/txsocksx?branch=master
+
+
 ========
 txsocksx
 ========
 
 ``txsocksx`` is SOCKS4/4a and SOCKS5 client endpoints for `Twisted`_ 10.1 or
-greater.
+greater. The code is available on github: https://github.com/habnabit/txsocksx
 
 
 Examples
