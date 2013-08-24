@@ -33,9 +33,12 @@ class _SOCKSAgent(Agent):
         return endpoint
 
 class SOCKS4Agent(_SOCKSAgent):
-    """An ``Agent`` which connects over SOCKS4.
+    """An `Agent`__ which connects over SOCKS4.
 
-    See SOCKS5Agent for details.
+    See |SOCKS5Agent| for details.
+
+    __ http://twistedmatrix.com/documents/current/api/twisted.web.client.Agent.html
+    .. |SOCKS5Agent| replace:: ``SOCKS5Agent``
 
     """
 
@@ -45,10 +48,10 @@ class SOCKS5Agent(_SOCKSAgent):
     """An ``Agent`` which connects over SOCKS5.
 
     :param proxyEndpoint: The same as *proxyEndpoint* for
-        ``SOCKS5ClientEndpoint``: the endpoint of the SOCKS5 proxy server. This
+        |SOCKS5ClientEndpoint|: the endpoint of the SOCKS5 proxy server. This
         argument must be passed as a keyword argument.
     :param endpointArgs: A dict of keyword arguments which will be passed when
-        constructing the ``SOCKS5ClientEndpoint``. For example, this could be
+        constructing the |SOCKS5ClientEndpoint|. For example, this could be
         ``{'methods': {'anonymous': ()}}``.
 
     The rest of the parameters, methods, and overall behavior is identical to
@@ -56,6 +59,7 @@ class SOCKS5Agent(_SOCKSAgent):
     ignored and should be specified when constructing the *proxyEndpoint*.
 
     __ http://twistedmatrix.com/documents/current/api/twisted.web.client.Agent.html
+    .. |SOCKS5ClientEndpoint| replace:: ``SOCKS5ClientEndpoint``
 
     """
 

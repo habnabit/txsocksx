@@ -191,7 +191,7 @@ class SOCKS5ClientEndpoint(object):
         modification to the SOCKS5 server to be resolved remotely.
     :param port: The port to connect to through the SOCKS5 server.
     :param proxyEndpoint: The endpoint of the SOCKS5 server. This must provide
-        ``IStreamClientEndpoint``.
+        `IStreamClientEndpoint`__.
     :param methods: The authentication methods to try.
 
     Authentication methods are specified as a dict mapping from method names to
@@ -202,6 +202,8 @@ class SOCKS5ClientEndpoint(object):
 
     The other method available by default is ``login``. ``login`` must map to a
     tuple of ``(username, password)``.
+
+    __ http://twistedmatrix.com/documents/current/api/twisted.internet.interfaces.IStreamClientEndpoint.html
 
     """
 
@@ -308,8 +310,10 @@ class SOCKS4ClientEndpoint(object):
         to be resolved remotely.
     :param port: The port to connect to through the SOCKS4 server.
     :param proxyEndpoint: The endpoint of the SOCKS4 server. This must provide
-        ``IStreamClientEndpoint``.
+        `IStreamClientEndpoint`__.
     :param user: The user ID to send to the SOCKS4 server.
+
+    __ http://twistedmatrix.com/documents/current/api/twisted.internet.interfaces.IStreamClientEndpoint.html
 
     """
 
