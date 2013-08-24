@@ -478,6 +478,10 @@ class TestSOCKS4ClientFactory(_TestSOCKSClientFactoryCommon, unittest.TestCase):
         wrappedFac.proto.transport.write('xxxxx')
         self.assertEqual(proto.transport.value(), 'xxxxx')
 
+    def test_invalidIPs(self):
+        self.assertRaises(ValueError, client.SOCKS4ClientFactory, '0.0.0.1', 0, None)
+        self.assertRaises(ValueError, client.SOCKS4ClientFactory, '0.0.0.255', 0, None)
+
 
 class TestSOCKS5ClientEndpoint(unittest.TestCase):
     def test_clientConnectionFailed(self):
@@ -573,3 +577,7 @@ class TestSOCKS4ClientEndpoint(unittest.TestCase):
         proxy.proto.transport.clear()
         wrappedFac.proto.transport.write('xxxxx')
         self.assertEqual(proxy.proto.transport.value(), 'xxxxx')
+
+    def test_invalidIPs(self):
+        self.assertRaises(ValueError, client.SOCKS4ClientEndpoint, '0.0.0.1', 0, None)
+        self.assertRaises(ValueError, client.SOCKS4ClientEndpoint, '0.0.0.255', 0, None)

@@ -17,8 +17,17 @@ from zope.interface import implements
 import txsocksx.constants as c, txsocksx.errors as e
 from txsocksx import grammar
 
+
 def socks_host(host):
     return chr(c.ATYP_DOMAINNAME) + chr(len(host)) + host
+
+def validateSOCKS4aHost(host):
+    try:
+        host = socket.inet_pton(socket.AF_INET, host)
+    except socket.error:
+        return
+    if host[:3] == '\0\0\0' and host[3] != '\0':
+        raise ValueError('SOCKS4a reserves addresses 0.0.0.1-0.0.0.255')
 
 
 class _SOCKSClientFactory(protocol.ClientFactory):
@@ -281,6 +290,7 @@ class SOCKS4ClientFactory(_SOCKSClientFactory):
     protocol = SOCKS4Client
 
     def __init__(self, host, port, proxiedFactory, user=''):
+        validateSOCKS4aHost(host)
         self.host = host
         self.port = port
         self.user = user
@@ -306,6 +316,7 @@ class SOCKS4ClientEndpoint(object):
     implements(interfaces.IStreamClientEndpoint)
 
     def __init__(self, host, port, proxyEndpoint, user=''):
+        validateSOCKS4aHost(host)
         self.host = host
         self.port = port
         self.proxyEndpoint = proxyEndpoint
