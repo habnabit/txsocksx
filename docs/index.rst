@@ -1,4 +1,5 @@
 .. include:: ../README.rst
+   :start-line: 7
 
 API
 ===
