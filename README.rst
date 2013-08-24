@@ -33,6 +33,16 @@ anonymous authentication, specify both methods::
 The ``methods`` dict must always map from a string to a tuple.
 
 
+SOCKS4
+~~~~~~
+
+SOCKS4 has no authentication, but does have a configurable "user ID" which
+defaults to an empty string::
+
+  exampleEndpoint = SOCKS4ClientEndpoint(
+      'example.com', 6667, proxyEndpoint, user='spam')
+
+
 Connecting to a thing over tor
 ------------------------------
 
@@ -49,6 +59,9 @@ Establishing the connection from there proceeds like usual::
 ``txsocksx`` will not do any DNS resolution, so the hostname ``example.com``
 will not leak; tor will receive the hostname directly and do the DNS lookup
 itself.
+
+Tor allows connections by SOCKS4 or SOCKS5, and does not expect a user ID to be
+sent when using the SOCKS4 client.
 
 
 Cancelling a connection
