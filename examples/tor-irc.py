@@ -11,10 +11,6 @@ from twisted.protocols.policies import SpewingFactory
 from txsocksx.client import SOCKS5ClientEndpoint
 
 
-class CouldNotIRCError(Exception):
-    pass
-
-
 class TorIRC(IRCClient):
     nickname = 'txsocksx-tor-irc'
     nickservPassword = ''
@@ -26,7 +22,8 @@ class TorIRC(IRCClient):
 
     def irc_CAP(self, prefix, params):
         if params[1] != 'ACK' or params[2].split() != ['sasl']:
-            self.deferred.errback(CouldNotIRCError('sasl not available'))
+            print 'sasl not available'
+            self.quit('')
         sasl = ('{0}\0{0}\0{1}'.format(self.nickname, self.nickservPassword)).encode('base64').strip()
         self.sendLine('AUTHENTICATE PLAIN')
         self.sendLine('AUTHENTICATE ' + sasl)
@@ -35,7 +32,8 @@ class TorIRC(IRCClient):
         self.sendLine('CAP END')
 
     def irc_904(self, prefix, params):
-        self.deferred.errback(CouldNotIRCError('sasl auth failed', params))
+        print 'sasl auth failed', params
+        self.quit('')
     irc_905 = irc_904
 
     def connectionLost(self, reason):
