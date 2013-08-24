@@ -1,6 +1,8 @@
 .. image:: https://travis-ci.org/habnabit/txsocksx.png
+   :target: https://travis-ci.org/habnabit/txsocksx
 
-.. image:: https://coveralls.io/r/habnabit/txsocksx?branch=master
+.. image:: https://coveralls.io/repos/habnabit/txsocksx/badge.png?branch=master
+   :target: https://coveralls.io/r/habnabit/txsocksx?branch=master
 
 
 ========
