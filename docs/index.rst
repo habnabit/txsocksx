@@ -25,3 +25,10 @@ API
 
 .. automodule:: txsocksx.ssl
    :members: TLSStarterClientEndpointWrapper
+
+
+.. |SOCKS5ClientEndpoint| replace:: :class:`.SOCKS5ClientEndpoint`
+.. |SOCKS5Agent| replace:: :class:`.SOCKS5Agent`
+.. |TLSStarterClientEndpointWrapper| replace:: :class:`.TLSStarterClientEndpointWrapper`
+.. |txsocksx.http| replace:: :mod:`txsocksx.http`
+.. |txsocksx.ssl| replace:: :mod:`txsocksx.ssl`
