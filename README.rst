@@ -145,6 +145,21 @@ upgraded to using TLS immediately after proxy negotiation finishes::
 .. [#] A more appropriate name might be ``txsocksx.tls``, but the name remains
        |txsocksx.ssl| for backward compatibility.
 
+
+Proxying over a proxy
+---------------------
+
+Because of txsocksx's composable design, it's trivial to connect from one SOCKS
+proxy to another::
+
+  torServerEndpoint = TCP4ClientEndpoint(reactor, '127.0.0.1', 9050)
+  firstProxyEndpoint = SOCKS5ClientEndpoint(
+      'first-proxy.example.com', 1080, torServerEndpoint)
+  secondProxyEndpoint = SOCKS4ClientEndpoint(
+      'second-proxy.example.com', 1080, firstProxyEndpoint)
+  deferred = secondProxyEndpoint.connect(someFactory)
+
+
 .. _Twisted: http://twistedmatrix.com/
 .. _Twisted endpoints: http://twistedmatrix.com/documents/current/core/howto/endpoints.html
 .. _IDelayedCall: http://twistedmatrix.com/documents/current/api/twisted.internet.interfaces.IDelayedCall.html
