@@ -157,7 +157,9 @@ proxy to another::
       'first-proxy.example.com', 1080, torServerEndpoint)
   secondProxyEndpoint = SOCKS4ClientEndpoint(
       'second-proxy.example.com', 1080, firstProxyEndpoint)
-  deferred = secondProxyEndpoint.connect(someFactory)
+  finalHop = SOCKS5ClientEndpoint(
+      'example.com', 113, secondProxyEndpoint)
+  deferred = finalHop.connect(someFactory)
 
 
 .. _Twisted: http://twistedmatrix.com/
