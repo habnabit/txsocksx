@@ -9,7 +9,7 @@
 txsocksx
 ========
 
-``txsocksx`` is SOCKS4/4a and SOCKS5 client endpoints for `Twisted`_ 10.1 or
+|txsocksx| is SOCKS4/4a and SOCKS5 client endpoints for `Twisted`_ 10.1 or
 greater. The code is available on github: https://github.com/habnabit/txsocksx
 
 
@@ -63,7 +63,7 @@ Establishing the connection from there proceeds like usual::
 
   deferred = exampleEndpoint.connect(someFactory)
 
-``txsocksx`` will not do any DNS resolution, so the hostname ``example.com``
+|txsocksx| will not do any DNS resolution, so the hostname ``example.com``
 will not leak; tor will receive the hostname directly and do the DNS lookup
 itself.
 
@@ -103,12 +103,12 @@ Making HTTP requests
 
 Twisted's builtin `Agent`_ HTTP client does not support being handed an
 arbitrary endpoint. (Yet. `Ticket #6634`_ was filed to make this an API
-directly supported by Twisted.) ``txsocksx`` provides an ``Agent`` as a
+directly supported by Twisted.) |txsocksx| provides an ``Agent`` as a
 workaround, but it uses a private API. There are no guarantees that this
 approach will run in newer versions of Twisted, but |txsocksx.http| will
 attempt to provide a consistent API.
 
-While ``txsocksx`` requires only Twisted 10.1, |txsocksx.http| requires Twisted
+While |txsocksx| requires only Twisted 10.1, |txsocksx.http| requires Twisted
 12.1 or greater. Its usage is almost identical to normal ``Agent`` usage::
 
   torServerEndpoint = TCP4ClientEndpoint(reactor, '127.0.0.1', 9050)
@@ -149,7 +149,7 @@ upgraded to using TLS immediately after proxy negotiation finishes::
 Proxying over a proxy
 ---------------------
 
-Because of txsocksx's composable design, it's trivial to connect from one SOCKS
+Because of |txsocksx|'s composable design, it's trivial to connect from one SOCKS
 proxy to another::
 
   torServerEndpoint = TCP4ClientEndpoint(reactor, '127.0.0.1', 9050)
@@ -171,5 +171,6 @@ proxy to another::
 .. |SOCKS5ClientEndpoint| replace:: ``SOCKS5ClientEndpoint``
 .. |SOCKS5Agent| replace:: ``SOCKS5Agent``
 .. |TLSStarterClientEndpointWrapper| replace:: ``TLSStarterClientEndpointWrapper``
+.. |txsocksx| replace:: ``txsocksx``
 .. |txsocksx.http| replace:: ``txsocksx.http``
 .. |txsocksx.ssl| replace:: ``txsocksx.ssl``
