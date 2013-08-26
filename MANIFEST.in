@@ -1,2 +1,2 @@
 graft examples
-include version.txt COPYING README.rst
+include version.txt requirements.txt COPYING README.rst
