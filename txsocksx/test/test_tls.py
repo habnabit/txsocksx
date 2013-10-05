@@ -1,11 +1,11 @@
 # Copyright (c) Aaron Gallagher <_@habnab.it>
 # See COPYING for details.
 
-from twisted.protocols.basic import NetstringReceiver
 from twisted.internet import defer, protocol
-from twisted.test import proto_helpers
+from twisted.protocols.basic import NetstringReceiver
 
-from txsocksx.test.util import UppercaseWrapperFactory, SyncDeferredsTestCase
+from txsocksx.test.util import (
+    FakeEndpoint, SyncDeferredsTestCase, UppercaseWrapperFactory)
 from txsocksx.tls import TLSWrapClientEndpoint
 
 
@@ -22,35 +22,6 @@ class NetstringFactory(protocol.ClientFactory):
 
 class FakeError(Exception):
     pass
-
-class FakeDisconnectedError(Exception):
-    pass
-
-
-class FakeEndpoint(object):
-    def __init__(self, deferred=None, fail=False):
-        self.deferred = deferred
-        self.fail = fail
-        self.connected = False
-
-    def connect(self, fac):
-        self.factory = fac
-        if self.deferred:
-            return self.deferred
-        if self.fail:
-            return defer.fail(FakeError())
-        self.proto = fac.buildProtocol(None)
-        self.transport = proto_helpers.StringTransport()
-        self.transport.abortConnection = self.transport.loseConnection = (
-            lambda: self.disconnect(FakeDisconnectedError()))
-        self.proto.makeConnection(self.transport)
-        self.connected = True
-        return defer.succeed(self.proto)
-
-    def disconnect(self, reason):
-        self.connected = False
-        self.proto.connectionLost(reason)
-        self.proto = self.transport = None
 
 
 class TLSWrapClientEndpointTestCase(SyncDeferredsTestCase):
