@@ -34,6 +34,7 @@ class FakeEndpoint(object):
         self.connected = False
 
     def connect(self, fac):
+        self.factory = fac
         if self.deferred:
             return self.deferred
         if self.fail:
@@ -99,3 +100,10 @@ class TLSWrapClientEndpointTestCase(SyncDeferredsTestCase):
         d.cancel()
         self.assert_(canceled)
         self.failureResultOf(d, defer.CancelledError)
+
+    def test_contextPassing(self):
+        """
+        The SSL context object is passed along to the wrapper.
+        """
+        self.successResultOf(self.wrapper.connect(self.factory))
+        self.assertIdentical(self.context, self.endpoint.factory.context)
