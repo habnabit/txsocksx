@@ -4,9 +4,8 @@
 from twisted.protocols.basic import NetstringReceiver
 from twisted.internet import defer, protocol
 from twisted.test import proto_helpers
-from twisted.trial import unittest
 
-from txsocksx.test.util import UppercaseWrapperFactory
+from txsocksx.test.util import UppercaseWrapperFactory, SyncDeferredsTestCase
 from txsocksx.tls import TLSWrapClientEndpoint
 
 
@@ -53,7 +52,7 @@ class FakeEndpoint(object):
         self.proto = self.transport = None
 
 
-class TLSWrapClientEndpointTestCase(unittest.TestCase):
+class TLSWrapClientEndpointTestCase(SyncDeferredsTestCase):
     def setUp(self):
         self.endpoint = FakeEndpoint()
         self.context = object()
