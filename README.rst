@@ -125,8 +125,7 @@ constructs it::
                       endpointArgs=dict(methods={'login': ('spam', 'eggs')}))
   deferred = agent.request('GET', 'http://example.com/')
 
-|SOCKS5Agent| transparently supports HTTPS via
-|TLSStarterClientEndpointWrapper|.
+|SOCKS5Agent| transparently supports HTTPS via |TLSWrapClientEndpoint|.
 
 
 Upgrading to TLS
@@ -167,7 +166,7 @@ proxy to another::
 
 .. |SOCKS5ClientEndpoint| replace:: ``SOCKS5ClientEndpoint``
 .. |SOCKS5Agent| replace:: ``SOCKS5Agent``
-.. |TLSStarterClientEndpointWrapper| replace:: ``TLSStarterClientEndpointWrapper``
+.. |TLSWrapClientEndpoint| replace:: ``TLSWrapClientEndpoint``
 .. |txsocksx| replace:: ``txsocksx``
 .. |txsocksx.http| replace:: ``txsocksx.http``
-.. |txsocksx.ssl| replace:: ``txsocksx.ssl``
+.. |txsocksx.tls| replace:: ``txsocksx.tls``

@@ -21,15 +21,15 @@ API
 .. autoclass:: SOCKS5Agent(*a, proxyEndpoint, endpointArgs={}, **kw)
    :members:
 
-``txsocksx.ssl``
+``txsocksx.tls``
 -----------------
 
-.. automodule:: txsocksx.ssl
-   :members: TLSStarterClientEndpointWrapper
+.. automodule:: txsocksx.tls
+   :members: TLSWrapClientEndpoint
 
 
 .. |SOCKS5ClientEndpoint| replace:: :class:`.SOCKS5ClientEndpoint`
 .. |SOCKS5Agent| replace:: :class:`.SOCKS5Agent`
-.. |TLSStarterClientEndpointWrapper| replace:: :class:`.TLSStarterClientEndpointWrapper`
+.. |TLSWrapClientEndpoint| replace:: :class:`.TLSWrapClientEndpoint`
 .. |txsocksx.http| replace:: :mod:`txsocksx.http`
-.. |txsocksx.ssl| replace:: :mod:`txsocksx.ssl`
+.. |txsocksx.tls| replace:: :mod:`txsocksx.tls`
