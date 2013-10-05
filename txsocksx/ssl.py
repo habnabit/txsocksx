@@ -3,6 +3,7 @@
 
 """SSL/TLS convenience wrappers for endpoints.
 
+This module is deprecated; please use ``txsocksx.tls`` instead.
 """
 
 
