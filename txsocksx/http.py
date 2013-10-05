@@ -11,11 +11,12 @@ This requires Twisted 12.1 or greater to use.
 from twisted.web.client import Agent, SchemeNotSupported
 
 from txsocksx.client import SOCKS4ClientEndpoint, SOCKS5ClientEndpoint
-from txsocksx.ssl import TLSStarterClientEndpointWrapper
+from txsocksx.tls import TLSWrapClientEndpoint
 
 
 class _SOCKSAgent(Agent):
     endpointFactory = None
+    _tlsWrapper = TLSWrapClientEndpoint
 
     def __init__(self, *a, **kw):
         self.proxyEndpoint = kw.pop('proxyEndpoint')
@@ -28,7 +29,7 @@ class _SOCKSAgent(Agent):
         endpoint = self.endpointFactory(
             host, port, self.proxyEndpoint, **self.endpointArgs)
         if scheme == 'https':
-            endpoint = TLSStarterClientEndpointWrapper(
+            endpoint = self._tlsWrapper(
                 self._wrapContextFactory(host, port), endpoint)
         return endpoint
 

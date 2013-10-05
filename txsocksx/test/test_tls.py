@@ -2,24 +2,12 @@
 # See COPYING for details.
 
 from twisted.protocols.basic import NetstringReceiver
-from twisted.protocols import policies
 from twisted.internet import defer, protocol
 from twisted.test import proto_helpers
 from twisted.trial import unittest
 
+from txsocksx.test.util import UppercaseWrapperFactory
 from txsocksx.tls import TLSWrapClientEndpoint
-
-
-class UppercaseWrapperProtocol(policies.ProtocolWrapper):
-    def dataReceived(self, data):
-        policies.ProtocolWrapper.dataReceived(self, data.upper())
-
-class UppercaseWrapperFactory(policies.WrappingFactory):
-    protocol = UppercaseWrapperProtocol
-
-    def __init__(self, context, ign, factory):
-        self.context = context
-        policies.WrappingFactory.__init__(self, factory)
 
 
 class NetstringTracker(NetstringReceiver):
@@ -89,7 +77,7 @@ class TLSWrapClientEndpointTestCase(unittest.TestCase):
         """
         proto = self.successResultOf(self.wrapper.connect(self.factory))
         proto.sendString('spam')
-        self.assertEqual(self.endpoint.transport.value(), '4:spam,')
+        self.assertEqual(self.endpoint.transport.value(), '4:SPAM,')
 
     def test_connectionFailure(self):
         """
