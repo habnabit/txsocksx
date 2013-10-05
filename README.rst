@@ -133,17 +133,14 @@ Upgrading to TLS
 ----------------
 
 Sometimes one wants to switch to speaking TLS as soon as the proxy negotiation
-is finished. For that, there is |txsocksx.ssl| [#]_. After wrapping an
-endpoint with |TLSStarterClientEndpointWrapper|, the connection will be
-upgraded to using TLS immediately after proxy negotiation finishes::
+is finished. For that, there is |txsocksx.tls|. After wrapping an endpoint with
+|TLSWrapClientEndpoint|, the connection will be upgraded to using TLS
+immediately after proxy negotiation finishes::
 
   torServerEndpoint = TCP4ClientEndpoint(reactor, '127.0.0.1', 9050)
   exampleEndpoint = SOCKS5ClientEndpoint('example.com', 6667, torServerEndpoint)
-  tlsEndpoint = TLSStarterClientEndpointWrapper(exampleEndpoint)
+  tlsEndpoint = TLSWrapClientEndpoint(exampleEndpoint)
   deferred = tlsEndpoint.connect(someFactory)
-
-.. [#] A more appropriate name might be ``txsocksx.tls``, but the name remains
-       |txsocksx.ssl| for backward compatibility.
 
 
 Proxying over a proxy
