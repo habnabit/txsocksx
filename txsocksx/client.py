@@ -11,8 +11,7 @@ import struct
 
 from parsley import makeProtocol, stack
 from twisted.internet import protocol, defer, interfaces
-from twisted.python import failure
-from zope.interface import implements
+from zope.interface import implementer
 
 import txsocksx.constants as c, txsocksx.errors as e
 from txsocksx import grammar
@@ -116,7 +115,6 @@ class SOCKS5AuthDispatcher(object):
 
 
 class SOCKS5Receiver(_SOCKSReceiver):
-    implements(interfaces.ITransport)
     otherProtocol = None
     currentRule = 'SOCKS5ClientState_initial'
 
@@ -183,6 +181,7 @@ class SOCKS5ClientFactory(_SOCKSClientFactory):
         self.deferred = defer.Deferred(self._cancel)
 
 
+@implementer(interfaces.IStreamClientEndpoint)
 class SOCKS5ClientEndpoint(object):
     """An endpoint which does SOCKS5 negotiation.
 
@@ -206,8 +205,6 @@ class SOCKS5ClientEndpoint(object):
     __ http://twistedmatrix.com/documents/current/api/twisted.internet.interfaces.IStreamClientEndpoint.html
 
     """
-
-    implements(interfaces.IStreamClientEndpoint)
 
     def __init__(self, host, port, proxyEndpoint, methods={'anonymous': ()}):
         if not methods:
@@ -264,7 +261,6 @@ class SOCKS4Sender(object):
 
 
 class SOCKS4Receiver(_SOCKSReceiver):
-    implements(interfaces.ITransport)
     otherProtocol = None
     currentRule = 'SOCKS4ClientState_initial'
 
@@ -299,6 +295,8 @@ class SOCKS4ClientFactory(_SOCKSClientFactory):
         self.proxiedFactory = proxiedFactory
         self.deferred = defer.Deferred(self._cancel)
 
+
+@implementer(interfaces.IStreamClientEndpoint)
 class SOCKS4ClientEndpoint(object):
     """An endpoint which does SOCKS4 or SOCKS4a negotiation.
 
@@ -316,8 +314,6 @@ class SOCKS4ClientEndpoint(object):
     __ http://twistedmatrix.com/documents/current/api/twisted.internet.interfaces.IStreamClientEndpoint.html
 
     """
-
-    implements(interfaces.IStreamClientEndpoint)
 
     def __init__(self, host, port, proxyEndpoint, user=''):
         validateSOCKS4aHost(host)

@@ -9,12 +9,11 @@ This module is deprecated; please use ``txsocksx.tls`` instead.
 
 from twisted.protocols import tls
 from twisted.internet import interfaces
-from zope.interface import implements
+from zope.interface import implementer
 
 
+@implementer(interfaces.IStreamClientEndpoint)
 class SSLWrapClientEndpoint(object):
-    implements(interfaces.IStreamClientEndpoint)
-
     def __init__(self, contextFactory, wrappedEndpoint):
         self.contextFactory = contextFactory
         self.wrappedEndpoint = wrappedEndpoint
@@ -24,6 +23,7 @@ class SSLWrapClientEndpoint(object):
         return self.wrappedEndpoint.connect(fac)
 
 
+@implementer(interfaces.IStreamClientEndpoint)
 class TLSStarterClientEndpointWrapper(object):
     """An endpoint which automatically starts TLS.
 
@@ -33,8 +33,6 @@ class TLSStarterClientEndpointWrapper(object):
     __ http://twistedmatrix.com/documents/current/api/twisted.internet.protocol.ClientFactory.html
 
     """
-
-    implements(interfaces.IStreamClientEndpoint)
 
     def __init__(self, contextFactory, wrappedEndpoint):
         self.contextFactory = contextFactory
