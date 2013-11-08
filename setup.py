@@ -30,7 +30,7 @@ setup(
     ],
     license='ISC',
 
-    setup_requires=['vcversioner'],
+    setup_requires=['vcversioner>=1'],
     vcversioner={
         'version_module_paths': ['txsocksx/_version.py'],
     },
