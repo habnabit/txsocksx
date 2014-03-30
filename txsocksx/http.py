@@ -19,6 +19,8 @@ class _SOCKSAgent(Agent):
     _tlsWrapper = TLSWrapClientEndpoint
 
     def __init__(self, *a, **kw):
+        if not hasattr(Agent, '_getEndpoint'):
+            raise NotImplementedError('txsocksx.http requires twisted 12.1 or greater')
         self.proxyEndpoint = kw.pop('proxyEndpoint')
         self.endpointArgs = kw.pop('endpointArgs', {})
         super(_SOCKSAgent, self).__init__(*a, **kw)
