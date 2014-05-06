@@ -31,8 +31,13 @@ class _SOCKSAgent(Agent):
         endpoint = self.endpointFactory(
             host, port, self.proxyEndpoint, **self.endpointArgs)
         if scheme == 'https':
-            endpoint = self._tlsWrapper(
-                self._wrapContextFactory(host, port), endpoint)
+            if hasattr(self, '_wrapContextFactory'):
+                tlsPolicy = self._wrapContextFactory(host, port)
+            elif hasattr(self, '_policyForHTTPS'):
+                tlsPolicy = self._policyForHTTPS.creatorForNetloc(host, port)
+            else:
+                raise NotImplementedError("can't figure out how to make a context factory")
+            endpoint = self._tlsWrapper(tlsPolicy, endpoint)
         return endpoint
 
 class SOCKS4Agent(_SOCKSAgent):
