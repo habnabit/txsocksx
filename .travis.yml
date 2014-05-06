@@ -7,7 +7,7 @@ env:
   - TWISTED=Twisted==11.1
   - TWISTED=Twisted==12.1
   - TWISTED=Twisted==12.3
-  - TWISTED=Twisted==13.1
+  - TWISTED=Twisted==13.2
   - TWISTED=svn+svn://svn.twistedmatrix.com/svn/Twisted/trunk
 
 python:
