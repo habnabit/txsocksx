@@ -30,7 +30,7 @@ class TLSStarterClientEndpointWrapper(object):
     :param contextFactory: A `ContextFactory`__ instance.
     :param wrappedEndpoint: The endpoint to wrap.
 
-    __ http://twistedmatrix.com/documents/current/api/twisted.internet.protocol.ClientFactory.html
+    __ http://twistedmatrix.com/documents/current/api/twisted.internet.ssl.ContextFactory.html
 
     """
 
