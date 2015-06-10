@@ -8,10 +8,42 @@ This requires Twisted 12.1 or greater to use.
 """
 
 
+import twisted
+from twisted.python.versions import Version
 from twisted.web.client import Agent, SchemeNotSupported
 
 from txsocksx.client import SOCKS4ClientEndpoint, SOCKS5ClientEndpoint
 from txsocksx.tls import TLSWrapClientEndpoint
+
+
+_twisted_12_1 = Version('twisted', 12, 1, 0)
+_twisted_14_0 = Version('twisted', 14, 0, 0)
+_twisted_15_0 = Version('twisted', 15, 0, 0)
+
+
+if twisted.version >= _twisted_15_0:
+    from twisted.web.client import BrowserLikePolicyForHTTPS
+    from twisted.web.iweb import IAgentEndpointFactory, IAgent, IPolicyForHTTPS
+    from zope.interface import implementer
+
+    _Agent = Agent
+
+    @implementer(IAgentEndpointFactory, IAgent)
+    class Agent(object):
+        def __init__(self, reactor, contextFactory=BrowserLikePolicyForHTTPS(),
+                     connectTimeout=None, bindAddress=None, pool=None):
+            if not IPolicyForHTTPS.providedBy(contextFactory):
+                raise NotImplementedError(
+                    'contextFactory must implement IPolicyForHTTPS')
+            self._policyForHTTPS = contextFactory
+            self._wrappedAgent = _Agent.usingEndpointFactory(
+                reactor, self, pool=pool)
+
+        def request(self, *a, **kw):
+            return self._wrappedAgent.request(*a, **kw)
+
+        def endpointForURI(self, uri):
+            return self._getEndpoint(uri.scheme, uri.host, uri.port)
 
 
 class _SOCKSAgent(Agent):
@@ -19,7 +51,7 @@ class _SOCKSAgent(Agent):
     _tlsWrapper = TLSWrapClientEndpoint
 
     def __init__(self, *a, **kw):
-        if not hasattr(Agent, '_getEndpoint'):
+        if twisted.version < _twisted_12_1:
             raise NotImplementedError('txsocksx.http requires twisted 12.1 or greater')
         self.proxyEndpoint = kw.pop('proxyEndpoint')
         self.endpointArgs = kw.pop('endpointArgs', {})
@@ -31,9 +63,9 @@ class _SOCKSAgent(Agent):
         endpoint = self.endpointFactory(
             host, port, self.proxyEndpoint, **self.endpointArgs)
         if scheme == 'https':
-            if hasattr(self, '_wrapContextFactory'):
+            if _twisted_12_1 <= twisted.version < _twisted_14_0:
                 tlsPolicy = self._wrapContextFactory(host, port)
-            elif hasattr(self, '_policyForHTTPS'):
+            elif _twisted_14_0 <= twisted.version:
                 tlsPolicy = self._policyForHTTPS.creatorForNetloc(host, port)
             else:
                 raise NotImplementedError("can't figure out how to make a context factory")

@@ -8,6 +8,8 @@ env:
   - TWISTED=Twisted==12.1
   - TWISTED=Twisted==12.3
   - TWISTED=Twisted==13.2
+  - TWISTED=Twisted==14.0
+  - TWISTED=Twisted==15.2
   - TWISTED=svn+svn://svn.twistedmatrix.com/svn/Twisted/trunk
 
 python:
@@ -21,8 +23,8 @@ matrix:
     - python: pypy
 
 install:
-  - pip install $TWISTED pyOpenSSL coveralls --use-mirrors
-  - pip install -r requirements.txt --use-mirrors
+  - pip install $TWISTED pyOpenSSL coveralls
+  - pip install -r requirements.txt
 
 script: coverage run $(which trial) txsocksx
 after_success: "coveralls"
