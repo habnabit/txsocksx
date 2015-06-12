@@ -1,7 +1,8 @@
 language: python
 
 env:
-  # earliest and latest supported; last release of every year; 12.1 for txsocksx.http
+  # earliest and latest supported; last release of every year; 12.1 and 15.0
+  # for txsocksx.http
   - TWISTED=Twisted==10.1
   - TWISTED=Twisted==10.2
   - TWISTED=Twisted==11.1
@@ -9,6 +10,7 @@ env:
   - TWISTED=Twisted==12.3
   - TWISTED=Twisted==13.2
   - TWISTED=Twisted==14.0
+  - TWISTED=Twisted==15.0
   - TWISTED=Twisted==15.2
   - TWISTED=svn+svn://svn.twistedmatrix.com/svn/Twisted/trunk
 

@@ -101,12 +101,9 @@ this::
 Making HTTP requests
 --------------------
 
-Twisted's builtin `Agent`_ HTTP client does not support being handed an
-arbitrary endpoint. (Yet. `Ticket #6634`_ was filed to make this an API
-directly supported by Twisted.) |txsocksx| provides an ``Agent`` as a
-workaround, but it uses a private API. There are no guarantees that this
-approach will run in newer versions of Twisted, but |txsocksx.http| will
-attempt to provide a consistent API.
+Twisted's builtin `Agent`_ HTTP client did not support being handed an
+arbitrary endpoint before 15.0, so |txsocksx| provides an ``Agent`` for maximum
+compatibility.
 
 While |txsocksx| requires only Twisted 10.1, |txsocksx.http| requires Twisted
 12.1 or greater. Its usage is almost identical to normal ``Agent`` usage::
@@ -126,6 +123,9 @@ constructs it::
   deferred = agent.request('GET', 'http://example.com/')
 
 |SOCKS5Agent| transparently supports HTTPS via |TLSWrapClientEndpoint|.
+
+For users with Twisted 15.0 or greater, |SOCKS5Agent| also implements
+`IAgentEndpointFactory`_.
 
 
 Upgrading to TLS
@@ -162,7 +162,7 @@ proxy to another::
 .. _Twisted endpoints: http://twistedmatrix.com/documents/current/core/howto/endpoints.html
 .. _IDelayedCall: http://twistedmatrix.com/documents/current/api/twisted.internet.interfaces.IDelayedCall.html
 .. _Agent: http://twistedmatrix.com/documents/current/web/howto/client.html
-.. _Ticket #6634: https://twistedmatrix.com/trac/ticket/6634
+.. _IAgentEndpointFactory: http://twistedmatrix.com/documents/current/api/twisted.web.iweb.IAgentEndpointFactory.html
 
 .. |SOCKS5ClientEndpoint| replace:: ``SOCKS5ClientEndpoint``
 .. |SOCKS5Agent| replace:: ``SOCKS5Agent``

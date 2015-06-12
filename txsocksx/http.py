@@ -99,6 +99,12 @@ class SOCKS5Agent(_SOCKSAgent):
     ignored and should be specified when constructing the *proxyEndpoint*.
 
     __ http://twistedmatrix.com/documents/current/api/twisted.web.client.Agent.html
+
+    If used with Twisted 15.0 or greater, this class will also implement
+    `IAgentEndpointFactory`__.
+
+    __ http://twistedmatrix.com/documents/current/api/twisted.web.iweb.IAgentEndpointFactory.html
+
     .. |SOCKS5ClientEndpoint| replace:: ``SOCKS5ClientEndpoint``
 
     """
