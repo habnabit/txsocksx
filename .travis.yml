@@ -1,18 +1,23 @@
 language: python
+sudo: false
 
 env:
-  # earliest and latest supported; last release of every year; 12.1 and 15.0
-  # for txsocksx.http
-  - TWISTED=Twisted==10.1
-  - TWISTED=Twisted==10.2
-  - TWISTED=Twisted==11.1
-  - TWISTED=Twisted==12.1
-  - TWISTED=Twisted==12.3
-  - TWISTED=Twisted==13.2
-  - TWISTED=Twisted==14.0
-  - TWISTED=Twisted==15.0
-  - TWISTED=Twisted==15.2
-  - TWISTED=svn+svn://svn.twistedmatrix.com/svn/Twisted/trunk
+  global:
+    - PIP_WHEEL_DIR=$HOME/.cache/pip/wheels
+    - PIP_FIND_LINKS=file://$HOME/.cache/pip/wheels
+  matrix:
+    # earliest and latest supported; last release of every year; 12.1 and 15.0
+    # for txsocksx.http
+    - TWISTED=Twisted==10.1
+    - TWISTED=Twisted==10.2
+    - TWISTED=Twisted==11.1
+    - TWISTED=Twisted==12.1
+    - TWISTED=Twisted==12.3
+    - TWISTED=Twisted==13.2
+    - TWISTED=Twisted==14.0
+    - TWISTED=Twisted==15.0
+    - TWISTED=Twisted==15.2
+    - TWISTED=svn+svn://svn.twistedmatrix.com/svn/Twisted/trunk
 
 python:
   - 2.6
@@ -24,7 +29,12 @@ matrix:
     # pypy is a bit sporadic
     - python: pypy
 
+cache:
+  directories:
+    - ~/.cache/pip
+
 install:
+  - pip install -U pip
   - pip install $TWISTED pyOpenSSL coveralls
   - pip install -r requirements.txt
 
